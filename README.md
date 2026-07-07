@@ -32,13 +32,23 @@ XIAO nRF52840 pins (silkscreen `Dn`):
 
 | Signal | Pin | | Signal | Pin |
 |---|---|---|---|---|
-| LCD SCK | D8 (P1.13) | | LCD CS | D9 |
-| LCD MOSI | D10 (P1.15) | | LCD DC | D7 |
+| **VCC** | **3V3** (3.3 V) | | **GND** | **GND** |
+| LCD SCK / CLK | D8 (P1.13) | | LCD CS | D9 |
+| LCD MOSI / DIN | D10 (P1.15) | | LCD DC | D7 |
 | LCD RST | D3 | | LCD BL | D6 (PWM, P1.11) |
 | Touch SDA | D4 (P0.04) | | Touch SCL | D5 (P0.05) |
 | Touch INT | D2 | | Touch RST | D1 |
 
-Defined in `boards/shields/asurada_adapter/boards/xiao_ble_zmk.overlay`.
+12 wires total: the 10 signals above **plus VCC and GND**. Power the module from
+the XIAO's **3V3** pin (not 5 V); the shared 3.3 V regulator supplies the LCD,
+backlight and touch controller.
+
+The signal pins are defined in
+`boards/shields/asurada_adapter/boards/xiao_ble_zmk.overlay`. **VCC and GND are
+power rails, so they are not in the devicetree — but they are required.** The
+panel is write-only, so **MISO is unused** (parked off D9 so D9 can serve as CS);
+leave it unconnected. If your module silkscreen reads `MOSI`/`SCK` or `SDA`/`SCL`
+for the display bus, match by function (SPI data = D10, SPI clock = D8).
 
 ## Installation
 
