@@ -1,7 +1,7 @@
 #pragma once
 #include <lvgl.h>
 
-#define BALL_SZ 130            /* widget/canvas square, px */
+#define BALL_SZ 100            /* widget/canvas square, px */
 
 struct zmk_widget_asurada_ball {
     lv_obj_t *cont;            /* container */

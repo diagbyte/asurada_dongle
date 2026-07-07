@@ -5,6 +5,10 @@
 #include "ball.h"
 #include "asurada_trackball.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846f
+#endif
+
 #define BALL_R   (BALL_SZ / 2 - 4)     /* sphere radius, px */
 #define BALL_C   (BALL_SZ / 2)         /* centre, px */
 #define LAT_STEP 15                    /* degrees between parallels */
@@ -63,6 +67,9 @@ static void redraw(struct zmk_widget_asurada_ball *w) {
         float Y = r[3] * x + r[4] * y + r[5] * z;
         int px = BALL_C + (int)(X * BALL_R);
         int py = BALL_C - (int)(Y * BALL_R);
+        if (px < 0 || px >= BALL_SZ || py < 0 || py >= BALL_SZ) {
+            continue;
+        }
         lv_opa_t opa = (lv_opa_t)(60 + Z * 195.0f); /* depth shade */
         lv_color_t col = lv_color_make(255, 210, 200);
         lv_canvas_set_px(w->canvas, px, py, col, opa);
