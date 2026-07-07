@@ -13,6 +13,7 @@ if(CONFIG_SHIELD_ASURADA_ADAPTER)
   zephyr_library_sources(src/custom_status_screen.c)
   zephyr_library_sources(src/display_rotate_init.c)
   zephyr_library_sources(src/trackball_input.c)
+  zephyr_library_sources(src/screens.c)
 
   if(CONFIG_ASURADA_TOUCH)
     zephyr_library_sources(src/touch.c)
