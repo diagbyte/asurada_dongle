@@ -18,3 +18,4 @@ struct zmk_widget_asurada_ball {
 
 void zmk_widget_asurada_ball_init(struct zmk_widget_asurada_ball *w, lv_obj_t *parent);
 lv_obj_t *zmk_widget_asurada_ball_obj(struct zmk_widget_asurada_ball *w);
+void zmk_widget_asurada_ball_set_active(struct zmk_widget_asurada_ball *w, bool active);

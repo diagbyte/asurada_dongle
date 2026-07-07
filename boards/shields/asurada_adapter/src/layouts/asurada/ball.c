@@ -97,6 +97,17 @@ lv_obj_t *zmk_widget_asurada_ball_obj(struct zmk_widget_asurada_ball *w) {
     return w->cont;
 }
 
+void zmk_widget_asurada_ball_set_active(struct zmk_widget_asurada_ball *w, bool active) {
+    if (!w->timer) {
+        return;
+    }
+    if (active) {
+        lv_timer_resume(w->timer);
+    } else {
+        lv_timer_pause(w->timer);
+    }
+}
+
 void zmk_widget_asurada_ball_init(struct zmk_widget_asurada_ball *w, lv_obj_t *parent) {
     build_points();
     for (int i = 0; i < 9; i++) w->rot[i] = (i % 4 == 0) ? 1.0f : 0.0f;
