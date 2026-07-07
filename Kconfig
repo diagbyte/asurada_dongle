@@ -135,4 +135,11 @@ config ASURADA_SCREENSAVER_BRIGHTNESS
     range 1 100
     depends on ASURADA_SCREENSAVER
 
+config ASURADA_TRACKBALL_LOG
+    bool "Log forwarded trackball REL events (Phase-1 bring-up)"
+    default n
+    help
+      Emits an INFO log line per forwarded trackball INPUT_EV_REL event.
+      Use to confirm motion reaches the dongle display, then turn off.
+
 endif # SHIELD_ASURADA_ADAPTER
