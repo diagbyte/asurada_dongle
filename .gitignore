@@ -1,0 +1,12 @@
+# Zephyr / west build output
+build/
+*.uf2
+
+# OpenSCAD exports / renders
+*.stl
+*.png.bak
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp

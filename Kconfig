@@ -1,0 +1,131 @@
+choice ASURADA_STATUS_SCREEN_LAYOUT
+    prompt "Status screen layout"
+    default ASURADA_STATUS_SCREEN_ASURADA
+
+config ASURADA_STATUS_SCREEN_ASURADA
+    bool "Asurada layout"
+    help
+        Cyber Formula Asurada layout for the 1.28" round GC9A01 display:
+        a typing-speed border gauge around the rim with a large centered
+        layer name.
+
+config ASURADA_STATUS_SCREEN_CLASSIC
+    bool "Classic layout"
+    help
+        Standard Prospector-derived status screen
+
+config ASURADA_STATUS_SCREEN_RADII
+    bool "Radii layout"
+    help
+        Colorful grid layout with rounded widgets
+
+config ASURADA_STATUS_SCREEN_FIELD
+    bool "Field layout"
+    help
+        Minimal layout with flowing typing activity visualization
+
+config ASURADA_STATUS_SCREEN_OPERATOR
+    bool "Operator layout"
+    help
+        Technical and information dense layout
+
+endchoice
+
+config ASURADA_ROTATE_DISPLAY_180
+    bool "Rotate the display 180 degrees"
+    default n
+
+config ASURADA_SHOW_MODIFIERS
+    bool "Display modifier key indicators (Cmd, Opt, Ctrl, Shift)"
+    default y
+
+config ASURADA_SHOW_INACTIVE_MODIFIERS
+    bool "Show inactive modifier indicators (dim when not pressed)"
+    default y
+    depends on ASURADA_SHOW_MODIFIERS
+    help
+      When enabled, inactive modifiers are shown with a dim color.
+      When disabled, inactive modifiers are hidden completely.
+      Only affects classic and field layouts.
+
+config ASURADA_MODIFIER_ORDER
+    string "Modifier display order"
+    default "GACS"
+    depends on ASURADA_SHOW_MODIFIERS
+    help
+      Order of modifier indicators. Use exactly 4 characters:
+      G=GUI/Cmd, A=Alt/Opt, C=Control, S=Shift.
+      Each character must appear exactly once.
+
+choice ASURADA_MODIFIER_OS
+    prompt "Modifier key style"
+    default ASURADA_MODIFIER_OS_MAC
+    depends on ASURADA_SHOW_MODIFIERS
+
+config ASURADA_MODIFIER_OS_GENERIC
+    bool "Generic (CTRL, ALT, GUI, SHFT)"
+
+config ASURADA_MODIFIER_OS_WINDOWS
+    bool "Windows"
+
+config ASURADA_MODIFIER_OS_MAC
+    bool "Mac"
+
+endchoice
+
+config ASURADA_LAYER_NAME_UPPERCASE
+    bool "Display layer names in uppercase"
+    default y
+    help
+      When enabled, layer names will be converted to uppercase for display.
+
+#
+# Brightness (no ambient light sensor; controlled by a fixed level + touch swipes)
+#
+config ASURADA_FIXED_BRIGHTNESS
+    int "Display brightness (percent)"
+    default 60
+    range 1 100
+    help
+      Initial display backlight brightness. Adjustable at runtime with
+      up/down touch swipes when ASURADA_TOUCH is enabled.
+
+config ASURADA_BRIGHTNESS_STEP
+    int "Brightness step per swipe (percent)"
+    default 10
+    range 1 50
+
+#
+# CST816S capacitive touch + gestures
+#
+config ASURADA_TOUCH
+    bool "Enable CST816S touch input and gestures"
+    default y
+    select INPUT
+    select INPUT_CST816S
+    help
+      Enables the CST816S touch controller and gesture handling:
+      tap to wake / long-press to sleep, up/down swipe for brightness,
+      left/right swipe to switch BLE profile.
+
+config ASURADA_TOUCH_SWIPE_THRESHOLD
+    int "Minimum swipe distance in pixels"
+    default 30
+    range 10 120
+    depends on ASURADA_TOUCH
+
+#
+# Idle screensaver: the Asurada four eyes
+#
+config ASURADA_SCREENSAVER
+    bool "Show the Asurada four-eyes screensaver when idle"
+    default y
+    help
+      On idle, show the animated Asurada four-eyes face instead of blanking
+      the display. The eyes blink and glance around.
+
+config ASURADA_SCREENSAVER_BRIGHTNESS
+    int "Screensaver display brightness (percent)"
+    default 15
+    range 1 100
+    depends on ASURADA_SCREENSAVER
