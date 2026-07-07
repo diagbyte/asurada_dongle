@@ -1,3 +1,8 @@
+# All Asurada options are display-shield specific. Scope the whole block to the
+# shield so these symbols (and ASURADA_TOUCH's `select INPUT_CST816S`) never leak
+# into unrelated builds sharing the west workspace, e.g. split peripherals.
+if SHIELD_ASURADA_ADAPTER
+
 choice ASURADA_STATUS_SCREEN_LAYOUT
     prompt "Status screen layout"
     default ASURADA_STATUS_SCREEN_ASURADA
@@ -129,3 +134,5 @@ config ASURADA_SCREENSAVER_BRIGHTNESS
     default 15
     range 1 100
     depends on ASURADA_SCREENSAVER
+
+endif # SHIELD_ASURADA_ADAPTER
