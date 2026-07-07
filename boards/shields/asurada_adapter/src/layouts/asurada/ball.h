@@ -1,7 +1,11 @@
 #pragma once
 #include <lvgl.h>
 
-#define BALL_SZ 100            /* widget/canvas square, px */
+#define BALL_SZ 84             /* widget/canvas square, px (RAM-bounded: ARGB8888
+                                * canvas is BALL_SZ^2*4 bytes of static noinit;
+                                * 84 -> ~28.2 KB. Phase-1.1: switch to an
+                                * LV_EVENT_DRAW_MAIN draw like line_segments.c to
+                                * drop the static buffer and allow a larger ball) */
 
 struct zmk_widget_asurada_ball {
     lv_obj_t *cont;            /* container */
