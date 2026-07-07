@@ -3,11 +3,10 @@
 #include <zephyr/input/input.h>
 #include <zephyr/sys/atomic.h>
 
-#include <zmk/ble.h>
-
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(asurada_touch, LOG_LEVEL_WRN);
 
+#include "asurada_screens.h"
 #include "asurada_brightness.h"
 #if IS_ENABLED(CONFIG_ASURADA_SCREENSAVER)
 #include "asurada_screensaver.h"
@@ -19,12 +18,12 @@ LOG_MODULE_REGISTER(asurada_touch, LOG_LEVEL_WRN);
  *   tap            -> peek at the status screen (wake from the screensaver)
  *   long press     -> show the four-eyes screensaver now
  *   swipe up/down  -> brighter / dimmer backlight
- *   swipe L/R      -> previous / next BLE (host) profile
+ *   swipe L/R      -> navigate carousel (keyboard ⟷ trackball pages)
  *
  * The CST816S Zephyr driver reports INPUT_ABS_X / INPUT_ABS_Y coordinates and
  * an INPUT_BTN_TOUCH press/release. The input callback runs on the driver's
  * thread, so the resolved gesture is handed to the system work queue before it
- * touches BLE / brightness / LVGL state.
+ * touches LVGL / brightness state.
  *
  * Coordinate directions depend on panel mounting; if a gesture feels flipped,
  * swap the sign tests below (or rotate the display).
@@ -76,10 +75,10 @@ static void gesture_work_handler(struct k_work *w) {
         asurada_brightness_adjust(-BRIGHTNESS_STEP);
         break;
     case G_SWIPE_LEFT:
-        zmk_ble_prof_prev();
+        asurada_screens_page_prev();
         break;
     case G_SWIPE_RIGHT:
-        zmk_ble_prof_next();
+        asurada_screens_page_next();
         break;
     default:
         break;
