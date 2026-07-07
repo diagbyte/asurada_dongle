@@ -3,12 +3,14 @@
 #include "wpm_border.h"
 #include "layer_center.h"
 #include "battery_circles.h"
+#include "ball.h"
 
 #include <fonts.h>
 
 static struct zmk_widget_wpm_border wpm_border_widget;
 static struct zmk_widget_layer_center layer_center_widget;
 static struct zmk_widget_battery_circles battery_circles_widget;
+static struct zmk_widget_asurada_ball ball_widget;
 
 lv_obj_t *zmk_display_status_screen() {
     lv_obj_t *screen = lv_obj_create(NULL);
@@ -26,6 +28,8 @@ lv_obj_t *zmk_display_status_screen() {
     /* Large layer name in the center, drawn on top. */
     zmk_widget_layer_center_init(&layer_center_widget, screen);
     lv_obj_align(zmk_widget_layer_center_obj(&layer_center_widget), LV_ALIGN_CENTER, 0, -8);
+
+    zmk_widget_asurada_ball_init(&ball_widget, screen);
 
     return screen;
 }
