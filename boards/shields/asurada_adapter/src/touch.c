@@ -3,6 +3,8 @@
 #include <zephyr/input/input.h>
 #include <zephyr/sys/atomic.h>
 
+#include <zmk/ble.h>
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(asurada_touch, LOG_LEVEL_WRN);
 
@@ -75,10 +77,18 @@ static void gesture_work_handler(struct k_work *w) {
         asurada_brightness_adjust(-BRIGHTNESS_STEP);
         break;
     case G_SWIPE_LEFT:
+#if IS_ENABLED(CONFIG_ASURADA_STATUS_SCREEN_ASURADA)
         asurada_screens_page_prev();
+#else
+        zmk_ble_prof_prev();
+#endif
         break;
     case G_SWIPE_RIGHT:
+#if IS_ENABLED(CONFIG_ASURADA_STATUS_SCREEN_ASURADA)
         asurada_screens_page_next();
+#else
+        zmk_ble_prof_next();
+#endif
         break;
     default:
         break;

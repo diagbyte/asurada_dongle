@@ -93,7 +93,7 @@ keymap {
 | Tap | Wake / peek at the status screen |
 | Long press (≥0.6 s) | Show the four-eyes screensaver now |
 | Swipe up / down | Brighter / dimmer backlight |
-| Swipe left / right | Previous / next BLE (host) profile |
+| Swipe left / right | Navigate display pages (asurada layout; BLE profile via keyboard ADJ) |
 
 If a direction feels inverted on your build, flip the sign tests in
 `src/touch.c` or set `CONFIG_ASURADA_ROTATE_DISPLAY_180=y`.

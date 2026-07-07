@@ -111,7 +111,9 @@ config ASURADA_TOUCH
     help
       Enables the CST816S touch controller and gesture handling:
       tap to wake / long-press to sleep, up/down swipe for brightness,
-      left/right swipe to switch BLE profile.
+      left/right swipe to navigate the display carousel on the asurada
+      layout (BLE profile switching moved to the keyboard's ADJ layer;
+      other status screen layouts keep left/right swipe as BLE profile).
 
 config ASURADA_TOUCH_SWIPE_THRESHOLD
     int "Minimum swipe distance in pixels"
