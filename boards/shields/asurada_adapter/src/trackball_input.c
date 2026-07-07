@@ -26,7 +26,7 @@ static void tb_cb(struct input_event *evt, void *user_data) {
     }
     atomic_set(&moved, 1);
 #if IS_ENABLED(CONFIG_ASURADA_TRACKBALL_LOG)
-    LOG_INF("trackball REL code=%u val=%d", evt->code, evt->value);
+    LOG_INF("trackball REL code=%u val=%d", (unsigned)evt->code, evt->value);
 #endif
 }
 
