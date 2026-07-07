@@ -49,15 +49,15 @@ manifest:
   remotes:
     - name: zmkfirmware
       url-base: https://github.com/zmkfirmware
-    - name: you                                 # <-- your GitHub user/org
-      url-base: https://github.com/you
+    - name: diagbyte                            # <-- your GitHub user/org
+      url-base: https://github.com/diagbyte
   projects:
     - name: zmk
       remote: zmkfirmware
       revision: main                            # Zephyr 4.1 line
       import: app/west.yml
     - name: asurada_dongle                      # <-- this repo
-      remote: you
+      remote: diagbyte
       revision: main
   self:
     path: config
