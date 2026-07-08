@@ -26,16 +26,19 @@ LOG_MODULE_REGISTER(asurada_saver, LOG_LEVEL_WRN);
  * Asurada face art -- swap the geometry / add an lv_image sprite later.
  */
 
-#define EYE_COUNT 4
-#define EYE_COLOR 0x35E0FF
-#define BLINK_FRAMES 8
-#define TICK_MS 45
+#include <math.h>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846f
+#endif
 
-/* Top-left position, width and (open) height of each eye on the 240x240 face. */
-static const int16_t eye_x[EYE_COUNT] = { 74, 124,  82, 128 };
-static const int16_t eye_y[EYE_COUNT] = { 126, 126, 92,  92 };
-static const int16_t eye_w[EYE_COUNT] = { 42,  42,  30,  30 };
-static const int16_t eye_h[EYE_COUNT] = { 24,  24,  16,  16 };
+#define EYE_COUNT   4
+#define EYE_GREEN   0x5FE23F   /* LED core */
+#define EYE_RING    0xA8FF88   /* brighter ring */
+#define TICK_MS     40
+#define FACE_C      120        /* 240/2 face centre */
+#define EYE_R       24         /* LED radius, px */
+#define CLUSTER_R   40         /* centre -> each LED centre (2x2 spread) */
+#define GLANCE_DEG  30         /* random glance amplitude, +/- degrees */
 
 static lv_obj_t *eyes_screen;
 static lv_obj_t *eyes[EYE_COUNT];
@@ -51,51 +54,42 @@ static uint32_t xrand(void) {
     return rng_state;
 }
 
-static int blink_phase;
-static int blink_countdown = 40;
 static uint32_t glow;
+static float cur_angle, tgt_angle;   /* radians; eased current + random target */
+static int glance_countdown = 25;
 
-static void apply_eyes(int openness, lv_opa_t opa) {
+/* Position the four LEDs at the corners of a square rotated by `ang`. */
+static void place_eyes(float ang) {
     for (int i = 0; i < EYE_COUNT; i++) {
-        int h = eye_h[i] * openness / 100;
-        if (h < 2) {
-            h = 2;
-        }
-        int y = eye_y[i] + (eye_h[i] - h) / 2;
-        lv_obj_set_size(eyes[i], eye_w[i], h);
-        lv_obj_set_pos(eyes[i], eye_x[i], y);
-        lv_obj_set_style_bg_opa(eyes[i], opa, LV_PART_MAIN);
+        float a = ang + (float)(M_PI / 4.0 + i * (M_PI / 2.0));
+        int cx = FACE_C + (int)(CLUSTER_R * cosf(a));
+        int cy = FACE_C + (int)(CLUSTER_R * sinf(a));
+        lv_obj_set_pos(eyes[i], cx - EYE_R, cy - EYE_R);
     }
 }
 
-static void blink_tick(lv_timer_t *t) {
+static void glance_tick(lv_timer_t *t) {
     ARG_UNUSED(t);
 
-    /* Soft glow: triangle wave 195..255. */
+    /* Soft brightness pulse (triangle wave). */
     glow += 3;
     int g = glow % 120;
     int tri = (g < 60) ? g : (120 - g);
-    lv_opa_t opa = (lv_opa_t)(195 + tri);
-
-    int openness;
-    if (blink_phase > 0) {
-        blink_phase--;
-        int pos = BLINK_FRAMES - blink_phase; /* 1..BLINK_FRAMES */
-        int half = BLINK_FRAMES / 2;
-        int dist = pos - half;
-        if (dist < 0) {
-            dist = -dist;
-        }
-        openness = dist * 100 / half; /* closes to 0 at mid-blink, reopens */
-    } else {
-        openness = 100;
-        if (--blink_countdown <= 0) {
-            blink_phase = BLINK_FRAMES;
-            blink_countdown = 30 + (xrand() % 70); /* ~1.35s .. 4.5s */
-        }
+    lv_opa_t opa = (lv_opa_t)(205 + tri / 3);   /* ~205..225 */
+    for (int i = 0; i < EYE_COUNT; i++) {
+        lv_obj_set_style_bg_opa(eyes[i], opa, LV_PART_MAIN);
     }
 
-    apply_eyes(openness, opa);
+    /* Ease the cluster toward the current glance target. */
+    cur_angle += (tgt_angle - cur_angle) * 0.12f;
+    place_eyes(cur_angle);
+
+    /* Option B: hold, then glance to a new random angle every ~1.2-4.5 s. */
+    if (--glance_countdown <= 0) {
+        float frac = (float)(xrand() % 2001) / 1000.0f - 1.0f;   /* -1..1 */
+        tgt_angle = frac * (float)(GLANCE_DEG * M_PI / 180.0);
+        glance_countdown = 30 + (xrand() % 82);                  /* 1.2..4.5 s */
+    }
 }
 
 static void build_eyes_screen(void) {
@@ -106,15 +100,23 @@ static void build_eyes_screen(void) {
 
     for (int i = 0; i < EYE_COUNT; i++) {
         eyes[i] = lv_obj_create(eyes_screen);
-        lv_obj_set_size(eyes[i], eye_w[i], eye_h[i]);
-        lv_obj_set_pos(eyes[i], eye_x[i], eye_y[i]);
-        lv_obj_set_style_bg_color(eyes[i], lv_color_hex(EYE_COLOR), LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(eyes[i], LV_OPA_COVER, LV_PART_MAIN);
-        lv_obj_set_style_border_width(eyes[i], 0, LV_PART_MAIN);
+        lv_obj_remove_style_all(eyes[i]);
+        lv_obj_set_size(eyes[i], EYE_R * 2, EYE_R * 2);
         lv_obj_set_style_radius(eyes[i], LV_RADIUS_CIRCLE, LV_PART_MAIN);
-        lv_obj_set_style_pad_all(eyes[i], 0, LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(eyes[i], LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(eyes[i], lv_color_hex(EYE_GREEN), LV_PART_MAIN);
+        lv_obj_set_style_border_color(eyes[i], lv_color_hex(EYE_RING), LV_PART_MAIN);
+        lv_obj_set_style_border_width(eyes[i], 3, LV_PART_MAIN);
+        lv_obj_set_style_shadow_color(eyes[i], lv_color_hex(EYE_GREEN), LV_PART_MAIN);
+        lv_obj_set_style_shadow_width(eyes[i], 14, LV_PART_MAIN);
+        lv_obj_set_style_shadow_spread(eyes[i], 2, LV_PART_MAIN);
         lv_obj_clear_flag(eyes[i], LV_OBJ_FLAG_SCROLLABLE);
     }
+
+    cur_angle = 0.0f;
+    tgt_angle = 0.0f;
+    glance_countdown = 25;
+    place_eyes(0.0f);
 }
 
 /* --- display-work-queue context below --- */
@@ -128,7 +130,7 @@ static void enter_eyes(void) {
         lv_scr_load(eyes_screen);
         showing_eyes = true;
         if (!blink_timer) {
-            blink_timer = lv_timer_create(blink_tick, TICK_MS, NULL);
+            blink_timer = lv_timer_create(glance_tick, TICK_MS, NULL);
         } else {
             lv_timer_resume(blink_timer);
         }
