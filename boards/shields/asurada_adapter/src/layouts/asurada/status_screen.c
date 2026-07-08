@@ -6,6 +6,7 @@
 #include "battery_circles.h"
 #include "ball.h"
 #include "pointing_mode.h"
+#include "connections.h"
 
 #include <fonts.h>
 
@@ -14,6 +15,7 @@ static struct zmk_widget_layer_center layer_center_widget;
 static struct zmk_widget_battery_circles battery_circles_widget;
 static struct zmk_widget_asurada_ball ball_widget;
 static struct zmk_widget_asurada_pointing_mode pointing_mode_widget;
+static struct zmk_widget_asurada_connections connections_widget;
 
 static void on_page_active(int page, bool active) {
     if (page == 1) {                 /* trackball page */
@@ -26,9 +28,10 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_set_style_bg_color(screen, lv_color_hex(0x000000), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(screen, 255, LV_PART_MAIN);
 
-    asurada_screens_init(screen, 2);
+    asurada_screens_init(screen, 3);
     lv_obj_t *kb = asurada_screens_page(0);
     lv_obj_t *tb = asurada_screens_page(1);
+    lv_obj_t *conn = asurada_screens_page(2);
 
     /* Page 0: existing keyboard status widgets, re-parented onto `kb`. */
     zmk_widget_wpm_border_init(&wpm_border_widget, kb);
@@ -44,6 +47,9 @@ lv_obj_t *zmk_display_status_screen() {
     zmk_widget_asurada_ball_init(&ball_widget, tb);
 
     zmk_widget_asurada_pointing_mode_init(&pointing_mode_widget, tb);
+
+    /* Page 2: connections (Left / Right / Trackball dot + battery). */
+    zmk_widget_asurada_connections_init(&connections_widget, conn);
 
     asurada_screens_set_activate_cb(on_page_active);
     return screen;
