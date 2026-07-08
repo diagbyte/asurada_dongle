@@ -5,6 +5,7 @@
 #include "layer_center.h"
 #include "battery_circles.h"
 #include "ball.h"
+#include "pointing_mode.h"
 
 #include <fonts.h>
 
@@ -12,6 +13,7 @@ static struct zmk_widget_wpm_border wpm_border_widget;
 static struct zmk_widget_layer_center layer_center_widget;
 static struct zmk_widget_battery_circles battery_circles_widget;
 static struct zmk_widget_asurada_ball ball_widget;
+static struct zmk_widget_asurada_pointing_mode pointing_mode_widget;
 
 static void on_page_active(int page, bool active) {
     if (page == 1) {                 /* trackball page */
@@ -40,6 +42,8 @@ lv_obj_t *zmk_display_status_screen() {
 
     /* Page 1: the rolling ball. */
     zmk_widget_asurada_ball_init(&ball_widget, tb);
+
+    zmk_widget_asurada_pointing_mode_init(&pointing_mode_widget, tb);
 
     asurada_screens_set_activate_cb(on_page_active);
     return screen;
