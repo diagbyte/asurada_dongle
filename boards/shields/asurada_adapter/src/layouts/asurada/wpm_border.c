@@ -48,13 +48,20 @@ static lv_color_t lerp_color(uint32_t a, uint32_t b, float t) {
     return lv_color_make(r, g, bl);
 }
 
+static lv_color_t tach_color(float ratio) {
+    if (ratio < 0.5f) {
+        return lerp_color(DISPLAY_COLOR_WPM_FILL_LOW, DISPLAY_COLOR_WPM_FILL_MID, ratio * 2.0f);
+    }
+    return lerp_color(DISPLAY_COLOR_WPM_FILL_MID, DISPLAY_COLOR_WPM_FILL_HIGH, (ratio - 0.5f) * 2.0f);
+}
+
 static void wpm_border_render(void) {
     float ratio = displayed_wpm / (float)WPM_BORDER_MAX;
     if (ratio > 1.0f) {
         ratio = 1.0f;
     }
     int value = (int)(ratio * ARC_RANGE + 0.5f);
-    lv_color_t fill = lerp_color(DISPLAY_COLOR_WPM_FILL_LOW, DISPLAY_COLOR_WPM_FILL_HIGH, ratio);
+    lv_color_t fill = tach_color(ratio);
 
     struct zmk_widget_wpm_border *widget;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
@@ -108,8 +115,10 @@ int zmk_widget_wpm_border_init(struct zmk_widget_wpm_border *widget, lv_obj_t *p
     lv_obj_set_style_pad_all(widget->arc, 0, LV_PART_MAIN);
     lv_arc_set_range(widget->arc, 0, ARC_RANGE);
     lv_arc_set_value(widget->arc, 0);
-    lv_arc_set_bg_angles(widget->arc, 0, 360);
-    lv_arc_set_rotation(widget->arc, 270); /* start at 12 o'clock, fill clockwise */
+    /* Tachometer: 8 o'clock (150°) clockwise over the top to 4 o'clock (30°),
+     * leaving the bottom 120° open for the battery. rotation offsets nominal 0. */
+    lv_arc_set_bg_angles(widget->arc, 0, 240);
+    lv_arc_set_rotation(widget->arc, 150);
 
     lv_obj_set_style_arc_width(widget->arc, ARC_WIDTH, LV_PART_MAIN);
     lv_obj_set_style_arc_color(widget->arc, lv_color_hex(DISPLAY_COLOR_WPM_RING_BG), LV_PART_MAIN);

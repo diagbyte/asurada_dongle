@@ -11,7 +11,10 @@
  * from a calm cyan (slow) to a bright cyan (fast). */
 #define DISPLAY_COLOR_WPM_RING_BG   0x14242A
 #define DISPLAY_COLOR_WPM_FILL_LOW  0x146A78
-#define DISPLAY_COLOR_WPM_FILL_HIGH 0x35E0FF
+
+/* Tachometer fill ramp: calm cyan (slow) -> amber -> red redline (fast). */
+#define DISPLAY_COLOR_WPM_FILL_MID  0xF5A623
+#define DISPLAY_COLOR_WPM_FILL_HIGH 0xFF2D2D
 
 /* Centered layer name */
 #define DISPLAY_COLOR_LAYER_TEXT    0xEAFDFF
