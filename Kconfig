@@ -154,4 +154,21 @@ config ASURADA_AUTO_PAGE_FOLLOW
       panel (whose swipe support is flaky on some CST816S modules). Set to n if
       you prefer to stay on a page and navigate only by touch swipe.
 
+#
+# Pointing-mode indicator (trackball page): SCROLL / SNIPE text driven by
+# whichever pointing layer is active. The indices are keymap-specific, so
+# they're exposed as Kconfig instead of hard-wired to one keymap.
+#
+config ASURADA_SCROLL_LAYER
+    int "Keymap layer index that means SCROLL (shown on the trackball page)"
+    default 6
+
+config ASURADA_SCROLL_LAYER2
+    int "Second SCROLL layer index (scroll-keep); set = SCROLL layer to disable"
+    default 7
+
+config ASURADA_SNIPE_LAYER
+    int "Keymap layer index that means SNIPE"
+    default 8
+
 endif # SHIELD_ASURADA_ADAPTER
