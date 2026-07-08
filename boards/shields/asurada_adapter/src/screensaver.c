@@ -21,9 +21,9 @@ LOG_MODULE_REGISTER(asurada_saver, LOG_LEVEL_WRN);
  * but LVGL must run on the display work queue, every LVGL action is marshalled
  * onto zmk_display_work_q().
  *
- * The four eyes are cyan capsules that blink at random intervals and pulse a
- * soft glow. This is a deliberately simple, low-RAM placeholder for the real
- * Asurada face art -- swap the geometry / add an lv_image sprite later.
+ * The four eyes are green LEDs in a 2x2 cluster that idly glance to a random
+ * angle (+/-30 deg) and hold ("looking around"), with a ring + soft glow and a
+ * gentle brightness pulse -- the confirmed Asurada face.
  */
 
 #include <math.h>
@@ -61,7 +61,7 @@ static int glance_countdown = 25;
 /* Position the four LEDs at the corners of a square rotated by `ang`. */
 static void place_eyes(float ang) {
     for (int i = 0; i < EYE_COUNT; i++) {
-        float a = ang + (float)(M_PI / 4.0 + i * (M_PI / 2.0));
+        float a = ang + (float)(M_PI / 4.0f + i * (M_PI / 2.0f));
         int cx = FACE_C + (int)(CLUSTER_R * cosf(a));
         int cy = FACE_C + (int)(CLUSTER_R * sinf(a));
         lv_obj_set_pos(eyes[i], cx - EYE_R, cy - EYE_R);
@@ -87,7 +87,7 @@ static void glance_tick(lv_timer_t *t) {
     /* Option B: hold, then glance to a new random angle every ~1.2-4.5 s. */
     if (--glance_countdown <= 0) {
         float frac = (float)(xrand() % 2001) / 1000.0f - 1.0f;   /* -1..1 */
-        tgt_angle = frac * (float)(GLANCE_DEG * M_PI / 180.0);
+        tgt_angle = frac * (float)(GLANCE_DEG * M_PI / 180.0f);
         glance_countdown = 30 + (xrand() % 82);                  /* 1.2..4.5 s */
     }
 }
@@ -107,9 +107,11 @@ static void build_eyes_screen(void) {
         lv_obj_set_style_bg_color(eyes[i], lv_color_hex(EYE_GREEN), LV_PART_MAIN);
         lv_obj_set_style_border_color(eyes[i], lv_color_hex(EYE_RING), LV_PART_MAIN);
         lv_obj_set_style_border_width(eyes[i], 3, LV_PART_MAIN);
+        lv_obj_set_style_border_opa(eyes[i], LV_OPA_COVER, LV_PART_MAIN);
         lv_obj_set_style_shadow_color(eyes[i], lv_color_hex(EYE_GREEN), LV_PART_MAIN);
         lv_obj_set_style_shadow_width(eyes[i], 14, LV_PART_MAIN);
         lv_obj_set_style_shadow_spread(eyes[i], 2, LV_PART_MAIN);
+        lv_obj_set_style_shadow_opa(eyes[i], LV_OPA_COVER, LV_PART_MAIN);
         lv_obj_clear_flag(eyes[i], LV_OBJ_FLAG_SCROLLABLE);
     }
 
