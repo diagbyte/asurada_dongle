@@ -2,13 +2,13 @@
 
 /*
  * Asurada (Cyber Formula) palette.
- * The screen is a black round face with a cyan typing-speed border gauge and a
+ * The screen is a black round face with a tachometer typing-speed gauge and a
  * large centered layer name. Battery colors are reused from the Prospector
  * operator theme.
  */
 
-/* WPM border gauge: dark background ring plus a speed-reactive fill that ramps
- * from a calm cyan (slow) to a bright cyan (fast). */
+/* WPM tachometer: dark background ring, plus the calm-cyan low end of the
+ * speed-reactive fill (the amber mid and red redline stops are defined below). */
 #define DISPLAY_COLOR_WPM_RING_BG   0x14242A
 #define DISPLAY_COLOR_WPM_FILL_LOW  0x146A78
 

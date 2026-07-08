@@ -9,13 +9,14 @@
 #include "display_colors.h"
 
 /*
- * Typing-speed border gauge.
+ * Typing-speed tachometer gauge.
  *
- * A single full-screen lv_arc drawn around the rim of the round display. Its
- * fill tracks the current WPM, and the fill color ramps from a calm cyan (slow)
- * to a bright cyan (fast). As in Prospector's wpm_meter, the ~1 Hz WPM event
- * only sets a target; a ~30 fps work item smooths toward it with a fast attack
- * and slow release so the ring rises quickly and drains gently.
+ * A 240-degree lv_arc sweeping from 8 o'clock over the top to 4 o'clock, leaving
+ * the bottom open for the battery. Its fill tracks the current WPM, and the fill
+ * color ramps like an automotive tach from a calm cyan (slow) through amber to a
+ * red redline (fast). As in Prospector's wpm_meter, the ~1 Hz WPM event only
+ * sets a target; a ~30 fps work item smooths toward it with a fast attack and
+ * slow release so the arc rises quickly and drains gently.
  */
 
 #define ARC_SIZE 240

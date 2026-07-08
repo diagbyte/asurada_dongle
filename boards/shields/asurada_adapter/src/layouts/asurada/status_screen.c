@@ -46,7 +46,7 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_align(zmk_widget_layer_center_obj(&layer_center_widget), LV_ALIGN_CENTER, 0, -34);
 
     zmk_widget_asurada_modifiers_init(&modifiers_widget, kb);
-    lv_obj_align(zmk_widget_asurada_modifiers_obj(&modifiers_widget), LV_ALIGN_CENTER, 0, 2);
+    lv_obj_align(zmk_widget_asurada_modifiers_obj(&modifiers_widget), LV_ALIGN_CENTER, 0, 8);
 
     /* Page 1: the rolling ball. */
     zmk_widget_asurada_ball_init(&ball_widget, tb);
