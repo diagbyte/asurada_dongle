@@ -7,6 +7,7 @@
 #include "ball.h"
 #include "pointing_mode.h"
 #include "connections.h"
+#include "modifiers.h"
 
 #include <fonts.h>
 
@@ -16,6 +17,7 @@ static struct zmk_widget_battery_circles battery_circles_widget;
 static struct zmk_widget_asurada_ball ball_widget;
 static struct zmk_widget_asurada_pointing_mode pointing_mode_widget;
 static struct zmk_widget_asurada_connections connections_widget;
+static struct zmk_widget_asurada_modifiers modifiers_widget;
 
 static void on_page_active(int page, bool active) {
     if (page == 1) {                 /* trackball page */
@@ -41,7 +43,10 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_align(zmk_widget_battery_circles_obj(&battery_circles_widget), LV_ALIGN_BOTTOM_MID, 0, -26);
 
     zmk_widget_layer_center_init(&layer_center_widget, kb);
-    lv_obj_align(zmk_widget_layer_center_obj(&layer_center_widget), LV_ALIGN_CENTER, 0, -8);
+    lv_obj_align(zmk_widget_layer_center_obj(&layer_center_widget), LV_ALIGN_CENTER, 0, -34);
+
+    zmk_widget_asurada_modifiers_init(&modifiers_widget, kb);
+    lv_obj_align(zmk_widget_asurada_modifiers_obj(&modifiers_widget), LV_ALIGN_CENTER, 0, 2);
 
     /* Page 1: the rolling ball. */
     zmk_widget_asurada_ball_init(&ball_widget, tb);

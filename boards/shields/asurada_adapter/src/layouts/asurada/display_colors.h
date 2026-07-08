@@ -19,6 +19,10 @@
 /* Centered layer name */
 #define DISPLAY_COLOR_LAYER_TEXT    0xEAFDFF
 
+/* Modifier indicator: active = bright cyan, inactive = dim slate. */
+#define DISPLAY_COLOR_MOD_ACTIVE    0x35E0FF
+#define DISPLAY_COLOR_MOD_INACTIVE  0x35505C
+
 /* Battery widget (reused Prospector operator palette) */
 #define DISPLAY_COLOR_BATTERY_FILL     0x54806c
 #define DISPLAY_COLOR_BATTERY_RING     0x2a4036
