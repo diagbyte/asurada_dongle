@@ -27,6 +27,10 @@ if(CONFIG_SHIELD_ASURADA_ADAPTER)
     zephyr_library_sources(src/modifier_order.c)
   endif()
 
+  if(CONFIG_ASURADA_AUTO_PAGE_FOLLOW)
+    zephyr_library_sources(src/page_follow.c)
+  endif()
+
   if(CONFIG_ASURADA_STATUS_SCREEN_ASURADA)
     file(GLOB layout_sources src/layouts/asurada/*.c)
     list(FILTER layout_sources EXCLUDE REGEX "status_screen\\.c$")

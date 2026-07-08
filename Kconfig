@@ -144,4 +144,14 @@ config ASURADA_TRACKBALL_LOG
       Emits an INFO log line per forwarded trackball INPUT_EV_REL event.
       Use to confirm motion reaches the dongle display, then turn off.
 
+config ASURADA_AUTO_PAGE_FOLLOW
+    bool "Auto-switch the display page to the active input device"
+    depends on ASURADA_STATUS_SCREEN_ASURADA
+    default y
+    help
+      Trackball motion shows the trackball page; typing shows the keyboard
+      page. Reliable input-driven navigation that does not depend on the touch
+      panel (whose swipe support is flaky on some CST816S modules). Set to n if
+      you prefer to stay on a page and navigate only by touch swipe.
+
 endif # SHIELD_ASURADA_ADAPTER
