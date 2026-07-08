@@ -14,9 +14,10 @@ static lv_obj_t *pages[MAX_PAGES];
 static int page_count;
 static int active_page;
 static asurada_page_activate_cb activate_cb;
-static int64_t last_switch;
+static int64_t last_switch = -AUTO_COOLDOWN_MS;   /* not "just switched" at boot */
 static atomic_t goto_target = ATOMIC_INIT(-1);
 static struct k_work goto_work_item;
+static void goto_work(struct k_work *w);          /* defined below; used in _init */
 
 static void anim_x_cb(void *obj, int32_t v) {
     lv_obj_set_x((lv_obj_t *)obj, v);
