@@ -1,4 +1,5 @@
 #include <zephyr/kernel.h>
+#include <zephyr/sys/atomic.h>
 #include <lvgl.h>
 #include <zmk/display.h>
 
@@ -6,12 +7,16 @@
 
 #define SCREEN_W 240
 #define MAX_PAGES 4
+#define AUTO_COOLDOWN_MS 400
 
 static lv_obj_t *track;
 static lv_obj_t *pages[MAX_PAGES];
 static int page_count;
 static int active_page;
 static asurada_page_activate_cb activate_cb;
+static int64_t last_switch;
+static atomic_t goto_target = ATOMIC_INIT(-1);
+static struct k_work goto_work_item;
 
 static void anim_x_cb(void *obj, int32_t v) {
     lv_obj_set_x((lv_obj_t *)obj, v);
@@ -76,6 +81,7 @@ lv_obj_t *asurada_screens_init(lv_obj_t *screen, int n_pages) {
 
     k_work_init(&next_msg.work, page_work); next_msg.delta = 1;
     k_work_init(&prev_msg.work, page_work); prev_msg.delta = -1;
+    k_work_init(&goto_work_item, goto_work);
     return track;
 }
 
@@ -93,4 +99,23 @@ void asurada_screens_page_next(void) {
 }
 void asurada_screens_page_prev(void) {
     k_work_submit_to_queue(zmk_display_work_q(), &prev_msg.work);
+}
+
+static void goto_work(struct k_work *w) {
+    ARG_UNUSED(w);
+    int p = (int)atomic_set(&goto_target, -1);
+    if (p < 0 || p == active_page) {
+        return;                       /* nothing to do / already there */
+    }
+    int64_t now = k_uptime_get();
+    if (now - last_switch < AUTO_COOLDOWN_MS) {
+        return;                       /* hysteresis: ignore rapid re-switch */
+    }
+    last_switch = now;
+    go_to(p);
+}
+
+void asurada_screens_page_goto(int page) {
+    atomic_set(&goto_target, page);
+    k_work_submit_to_queue(zmk_display_work_q(), &goto_work_item);
 }

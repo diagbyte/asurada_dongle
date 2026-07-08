@@ -11,5 +11,7 @@ lv_obj_t *asurada_screens_page(int i);
 /* Change page (wraps). Safe from any thread — marshals to the display WQ. */
 void asurada_screens_page_next(void);
 void asurada_screens_page_prev(void);
+/* Absolute page switch (auto-follow). Any thread; idempotent; hysteresis-limited. */
+void asurada_screens_page_goto(int page);
 /* Registered cb fires on the display WQ when the active page changes. */
 void asurada_screens_set_activate_cb(asurada_page_activate_cb cb);
