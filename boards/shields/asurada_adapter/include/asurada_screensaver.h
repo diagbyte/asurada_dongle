@@ -17,3 +17,6 @@ void asurada_screensaver_wake(void);
 
 /* Long-press: show the four-eyes screensaver immediately. */
 void asurada_screensaver_force_sleep(void);
+
+/* True while the idle eyes screen is showing (not the status screen). */
+bool asurada_screensaver_is_active(void);

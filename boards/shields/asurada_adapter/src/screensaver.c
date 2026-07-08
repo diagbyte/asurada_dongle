@@ -196,6 +196,10 @@ void asurada_screensaver_force_sleep(void) {
     k_work_submit_to_queue(zmk_display_work_q(), &enter_work);
 }
 
+bool asurada_screensaver_is_active(void) {
+    return showing_eyes;
+}
+
 /* --- ZMK activity listener (system work queue) --- */
 
 static int activity_listener(const zmk_event_t *eh) {

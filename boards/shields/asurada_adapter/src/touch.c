@@ -62,7 +62,13 @@ static void gesture_work_handler(struct k_work *w) {
     switch (g) {
     case G_TAP:
 #if IS_ENABLED(CONFIG_ASURADA_SCREENSAVER)
-        asurada_screensaver_wake();
+        if (asurada_screensaver_is_active()) {
+            asurada_screensaver_wake();
+            break;
+        }
+#endif
+#if IS_ENABLED(CONFIG_ASURADA_STATUS_SCREEN_ASURADA)
+        asurada_screens_page_next();
 #endif
         break;
     case G_LONG_PRESS:
