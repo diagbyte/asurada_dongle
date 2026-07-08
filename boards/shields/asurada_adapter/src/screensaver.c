@@ -36,8 +36,8 @@ LOG_MODULE_REGISTER(asurada_saver, LOG_LEVEL_WRN);
 #define EYE_RING    0xA8FF88   /* brighter ring */
 #define TICK_MS     40
 #define FACE_C      120        /* 240/2 face centre */
-#define EYE_R       24         /* LED radius, px */
-#define CLUSTER_R   40         /* centre -> each LED centre (2x2 spread) */
+#define EYE_R       32         /* LED radius, px */
+#define CLUSTER_R   58         /* centre -> each LED centre (2x2 spread) */
 #define GLANCE_DEG  30         /* random glance amplitude, +/- degrees */
 
 static lv_obj_t *eyes_screen;
@@ -54,7 +54,6 @@ static uint32_t xrand(void) {
     return rng_state;
 }
 
-static uint32_t glow;
 static float cur_angle, tgt_angle;   /* radians; eased current + random target */
 static int glance_countdown = 25;
 
@@ -71,24 +70,21 @@ static void place_eyes(float ang) {
 static void glance_tick(lv_timer_t *t) {
     ARG_UNUSED(t);
 
-    /* Soft brightness pulse (triangle wave). */
-    glow += 3;
-    int g = glow % 120;
-    int tri = (g < 60) ? g : (120 - g);
-    lv_opa_t opa = (lv_opa_t)(205 + tri / 3);   /* ~205..225 */
-    for (int i = 0; i < EYE_COUNT; i++) {
-        lv_obj_set_style_bg_opa(eyes[i], opa, LV_PART_MAIN);
+    /* Move (and thus redraw) ONLY while easing toward a new glance angle. When
+     * settled, do nothing so the LEDs stay perfectly static -- the old per-tick
+     * brightness pulse redrew all four shadowed LEDs every frame, which caused
+     * the flicker and ghost trails on the GC9A01. */
+    float diff = tgt_angle - cur_angle;
+    if (fabsf(diff) > 0.002f) {
+        cur_angle += diff * 0.10f;
+        place_eyes(cur_angle);
     }
 
-    /* Ease the cluster toward the current glance target. */
-    cur_angle += (tgt_angle - cur_angle) * 0.12f;
-    place_eyes(cur_angle);
-
-    /* Option B: hold, then glance to a new random angle every ~1.2-4.5 s. */
+    /* Option B: hold, then glance to a new random angle. Infrequent + gentle. */
     if (--glance_countdown <= 0) {
         float frac = (float)(xrand() % 2001) / 1000.0f - 1.0f;   /* -1..1 */
         tgt_angle = frac * (float)(GLANCE_DEG * M_PI / 180.0f);
-        glance_countdown = 30 + (xrand() % 82);                  /* 1.2..4.5 s */
+        glance_countdown = 45 + (xrand() % 105);                 /* ~1.8..6.0 s */
     }
 }
 
@@ -109,7 +105,7 @@ static void build_eyes_screen(void) {
         lv_obj_set_style_border_width(eyes[i], 3, LV_PART_MAIN);
         lv_obj_set_style_border_opa(eyes[i], LV_OPA_COVER, LV_PART_MAIN);
         lv_obj_set_style_shadow_color(eyes[i], lv_color_hex(EYE_GREEN), LV_PART_MAIN);
-        lv_obj_set_style_shadow_width(eyes[i], 14, LV_PART_MAIN);
+        lv_obj_set_style_shadow_width(eyes[i], 8, LV_PART_MAIN);   /* modest glow, less trail */
         lv_obj_set_style_shadow_spread(eyes[i], 2, LV_PART_MAIN);
         lv_obj_set_style_shadow_opa(eyes[i], LV_OPA_COVER, LV_PART_MAIN);
         lv_obj_clear_flag(eyes[i], LV_OBJ_FLAG_SCROLLABLE);
