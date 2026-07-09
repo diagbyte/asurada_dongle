@@ -10,6 +10,8 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(asurada_saver, LOG_LEVEL_WRN);
 
+#include <fonts.h>
+
 #include "asurada_screensaver.h"
 #include "asurada_brightness.h"
 
@@ -110,6 +112,13 @@ static void build_eyes_screen(void) {
         lv_obj_set_style_shadow_opa(eyes[i], LV_OPA_COVER, LV_PART_MAIN);
         lv_obj_clear_flag(eyes[i], LV_OBJ_FLAG_SCROLLABLE);
     }
+
+    lv_obj_t *wake = lv_label_create(eyes_screen);
+    lv_label_set_text(wake, "TAP TO WAKE");
+    lv_obj_set_style_text_font(wake, &FG_Medium_20, LV_PART_MAIN);
+    lv_obj_set_style_text_color(wake, lv_color_hex(0x3A8A46), LV_PART_MAIN);
+    lv_obj_set_style_text_letter_space(wake, 2, LV_PART_MAIN);
+    lv_obj_align(wake, LV_ALIGN_TOP_MID, 0, 30);
 
     cur_angle = 0.0f;
     tgt_angle = 0.0f;
