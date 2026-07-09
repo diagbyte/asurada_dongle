@@ -4,10 +4,13 @@
 if SHIELD_ASURADA_ADAPTER
 
 # Only the Asurada layout ships in this repo now (the Prospector-derived classic/
-# radii/field/operator layouts were removed). Kept as an always-on symbol so the
-# widget sources and the CONFIG_ASURADA_STATUS_SCREEN_ASURADA #if guards stay put.
+# radii/field/operator layouts were removed). Kept as a promptable option defaulting
+# on -- it must stay user-settable because configs (e.g. totem_dongle.conf) assign
+# CONFIG_ASURADA_STATUS_SCREEN_ASURADA=y, and Zephyr errors on assigning a symbol
+# that has no prompt.
 config ASURADA_STATUS_SCREEN_ASURADA
-    def_bool y
+    bool "Asurada status screen layout"
+    default y
 
 config ASURADA_ROTATE_DISPLAY_180
     bool "Rotate the display 180 degrees"
