@@ -60,17 +60,17 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_center(zmk_widget_wpm_border_obj(&wpm_border_widget));
 
     zmk_widget_layer_center_init(&layer_center_widget, kb);
-    lv_obj_align(zmk_widget_layer_center_obj(&layer_center_widget), LV_ALIGN_CENTER, 0, -24);
+    lv_obj_align(zmk_widget_layer_center_obj(&layer_center_widget), LV_ALIGN_CENTER, 0, -18);
 
     zmk_widget_asurada_modifiers_init(&modifiers_widget, kb);
-    lv_obj_align(zmk_widget_asurada_modifiers_obj(&modifiers_widget), LV_ALIGN_CENTER, 0, 20);
+    lv_obj_align(zmk_widget_asurada_modifiers_obj(&modifiers_widget), LV_ALIGN_CENTER, 0, 22);
 
     zmk_widget_asurada_lock_status_init(&lock_status_widget, kb);
-    lv_obj_align(zmk_widget_asurada_lock_status_obj(&lock_status_widget), LV_ALIGN_CENTER, 0, 44);
+    lv_obj_align(zmk_widget_asurada_lock_status_obj(&lock_status_widget), LV_ALIGN_CENTER, 0, 46);
 
     /* Keyboard-half batteries only (L/R); the trackball has its own page. */
     zmk_widget_asurada_half_batteries_init(&half_batteries_widget, kb);
-    lv_obj_align(zmk_widget_asurada_half_batteries_obj(&half_batteries_widget), LV_ALIGN_BOTTOM_MID, 0, -24);
+    lv_obj_align(zmk_widget_asurada_half_batteries_obj(&half_batteries_widget), LV_ALIGN_BOTTOM_MID, 0, -26);
 
 #if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)
     /* Page 1: the rolling ball. */

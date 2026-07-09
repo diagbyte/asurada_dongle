@@ -159,7 +159,7 @@ void zmk_widget_asurada_half_batteries_init(struct zmk_widget_asurada_half_batte
     lv_obj_set_size(w->obj, LV_SIZE_CONTENT, 18);
     lv_obj_set_flex_flow(w->obj, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(w->obj, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(w->obj, 12, LV_PART_MAIN);
+    lv_obj_set_style_pad_column(w->obj, 8, LV_PART_MAIN);
     lv_obj_clear_flag(w->obj, LV_OBJ_FLAG_SCROLLABLE);
 
     for (int i = 0; i < ASURADA_HALF_COUNT; i++) {
