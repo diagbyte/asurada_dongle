@@ -10,7 +10,9 @@ Cyber Formula **아스라다(Asurada)** 테마의 ZMK 동글 디스플레이 · 
 ## 한국어
 
 [carrefinho/prospector-zmk-module](https://github.com/carrefinho/prospector-zmk-module)
-(`feat/new-status-screens`)을 포크한, 아스라다 테마의 ZMK 동글 디스플레이입니다.
+(`feat/new-status-screens`)에서 **크게 파생된**(heavily derived) 아스라다 테마의 ZMK
+동글 디스플레이입니다. 위젯 프레임워크·폰트·배터리 위젯 등은 Prospector에서 왔고,
+아스라다 레이아웃(3페이지 HUD·타코미터·구·눈·연결)은 새로 작성했습니다.
 **Seeed XIAO nRF52840** 가 **Waveshare 1.28" 원형 LCD (GC9A01, 240×240)** 와
 **CST816S** 정전식 터치를 구동하며, 기존 스플릿 키보드의 BLE **스플릿 센트럴("동글")**
 역할을 합니다. **트랙볼은 선택**입니다.
@@ -154,10 +156,6 @@ keymap {
 |---|---|
 | `CONFIG_ASURADA_CONN_LABEL_0` / `_1` / `_2` / `_3` | Left / Right / Trackball / Periph 4 |
 
-Prospector 포크의 다른 레이아웃(`classic`, `radii`, `field`, `operator`)도
-`CONFIG_ASURADA_STATUS_SCREEN_RADII=y` 식으로 선택 가능하지만 240×280 패널용이라
-240×240 원형엔 부분 적응 상태입니다. 기본은 `CONFIG_ASURADA_STATUS_SCREEN_ASURADA`.
-
 ### 내 스플릿 키보드에서 재사용
 
 - **트랙볼 없음?** `CONFIG_ASURADA_TRACKBALL=n` → 키보드 전용 동글(키보드·연결 2페이지),
@@ -202,16 +200,20 @@ boards/shields/asurada_adapter/
 - 기구부: `hardware/asurada_mount.scad`(파라메트릭 코어 — LCD 베젤/XIAO 트레이/스탠드오프),
   `hardware/README.md`
 - **Prospector**(carrefinho, [hardware](https://github.com/carrefinho/prospector) ·
-  [firmware](https://github.com/carrefinho/prospector-zmk-module)) 포크이며, 그 원류는
-  englmaxi의 `zmk-dongle-display`. `LICENSE` 표기대로 CERN-OHL-P-2.0 / MIT.
+  [firmware](https://github.com/carrefinho/prospector-zmk-module))를 **기반으로 크게
+  개조**했으며, 그 원류는 englmaxi의 `zmk-dongle-display`입니다. 위젯 프레임워크·폰트·
+  battery 위젯은 Prospector 파생이고, Prospector의 classic/radii/field/operator
+  레이아웃은 이 저장소에서 제거했습니다. `LICENSE` 표기대로 CERN-OHL-P-2.0 / MIT.
 
 ---
 
 ## English
 
-An Asurada-themed ZMK dongle display, forked from
+An Asurada-themed ZMK dongle display, **heavily derived from**
 [carrefinho/prospector-zmk-module](https://github.com/carrefinho/prospector-zmk-module)
-(`feat/new-status-screens`). A **Seeed XIAO nRF52840** drives a **Waveshare 1.28"
+(`feat/new-status-screens`) — the widget framework, fonts and battery widget come
+from Prospector; the Asurada layout (3-page HUD, tachometer, ball, eyes, connections)
+is new. A **Seeed XIAO nRF52840** drives a **Waveshare 1.28"
 round LCD (GC9A01, 240×240)** with a **CST816S** capacitive touch panel, and acts
 as the BLE **split central ("dongle")** for an existing split keyboard. A
 **trackball is optional**.
@@ -358,11 +360,6 @@ keymap {
 |---|---|
 | `CONFIG_ASURADA_CONN_LABEL_0` / `_1` / `_2` / `_3` | Left / Right / Trackball / Periph 4 |
 
-Other layouts from the Prospector fork (`classic`, `radii`, `field`, `operator`)
-still exist (`CONFIG_ASURADA_STATUS_SCREEN_RADII=y`, etc.) but were laid out for a
-240×280 panel and are only partially adapted to the 240×240 round screen. The default
-is `CONFIG_ASURADA_STATUS_SCREEN_ASURADA`.
-
 ### Reusing on your own split keyboard
 
 - **No trackball?** Set `CONFIG_ASURADA_TRACKBALL=n` for a keyboard-only dongle: the
@@ -408,8 +405,9 @@ boards/shields/asurada_adapter/
 - Build + on-device checklist: `docs/VERIFY.md`
 - Mechanical: `hardware/asurada_mount.scad` (parametric core — LCD bezel, XIAO tray,
   standoffs), `hardware/README.md`
-- Forked from **Prospector** by carrefinho
+- **Based on / heavily derived from Prospector** by carrefinho
   ([hardware](https://github.com/carrefinho/prospector),
   [firmware](https://github.com/carrefinho/prospector-zmk-module)), itself derived
-  from englmaxi's `zmk-dongle-display`. Licensed CERN-OHL-P-2.0 / MIT as noted in
-  `LICENSE`.
+  from englmaxi's `zmk-dongle-display`. The widget framework, fonts and battery
+  widget are Prospector-derived; Prospector's classic/radii/field/operator layouts
+  were removed from this repo. Licensed CERN-OHL-P-2.0 / MIT as noted in `LICENSE`.

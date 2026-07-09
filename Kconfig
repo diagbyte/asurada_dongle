@@ -3,80 +3,15 @@
 # into unrelated builds sharing the west workspace, e.g. split peripherals.
 if SHIELD_ASURADA_ADAPTER
 
-choice ASURADA_STATUS_SCREEN_LAYOUT
-    prompt "Status screen layout"
-    default ASURADA_STATUS_SCREEN_ASURADA
-
+# Only the Asurada layout ships in this repo now (the Prospector-derived classic/
+# radii/field/operator layouts were removed). Kept as an always-on symbol so the
+# widget sources and the CONFIG_ASURADA_STATUS_SCREEN_ASURADA #if guards stay put.
 config ASURADA_STATUS_SCREEN_ASURADA
-    bool "Asurada layout"
-    help
-        Cyber Formula Asurada layout for the 1.28" round GC9A01 display:
-        a typing-speed border gauge around the rim with a large centered
-        layer name.
-
-config ASURADA_STATUS_SCREEN_CLASSIC
-    bool "Classic layout"
-    help
-        Standard Prospector-derived status screen
-
-config ASURADA_STATUS_SCREEN_RADII
-    bool "Radii layout"
-    help
-        Colorful grid layout with rounded widgets
-
-config ASURADA_STATUS_SCREEN_FIELD
-    bool "Field layout"
-    help
-        Minimal layout with flowing typing activity visualization
-
-config ASURADA_STATUS_SCREEN_OPERATOR
-    bool "Operator layout"
-    help
-        Technical and information dense layout
-
-endchoice
+    def_bool y
 
 config ASURADA_ROTATE_DISPLAY_180
     bool "Rotate the display 180 degrees"
     default n
-
-config ASURADA_SHOW_MODIFIERS
-    bool "Display modifier key indicators (Cmd, Opt, Ctrl, Shift)"
-    default y
-
-config ASURADA_SHOW_INACTIVE_MODIFIERS
-    bool "Show inactive modifier indicators (dim when not pressed)"
-    default y
-    depends on ASURADA_SHOW_MODIFIERS
-    help
-      When enabled, inactive modifiers are shown with a dim color.
-      When disabled, inactive modifiers are hidden completely.
-      Only affects classic and field layouts.
-
-config ASURADA_MODIFIER_ORDER
-    string "Modifier display order"
-    default "GACS"
-    depends on ASURADA_SHOW_MODIFIERS
-    help
-      Order of modifier indicators. Use exactly 4 characters:
-      G=GUI/Cmd, A=Alt/Opt, C=Control, S=Shift.
-      Each character must appear exactly once.
-
-choice ASURADA_MODIFIER_OS
-    prompt "Modifier key style"
-    default ASURADA_MODIFIER_OS_MAC
-    depends on ASURADA_SHOW_MODIFIERS
-
-config ASURADA_MODIFIER_OS_GENERIC
-    bool "Generic (CTRL, ALT, GUI, SHFT)"
-
-config ASURADA_MODIFIER_OS_WINDOWS
-    bool "Windows"
-
-config ASURADA_MODIFIER_OS_MAC
-    bool "Mac"
-
-endchoice
 
 config ASURADA_LAYER_NAME_UPPERCASE
     bool "Display layer names in uppercase"
@@ -110,10 +45,9 @@ config ASURADA_TOUCH
     select INPUT_CST816S
     help
       Enables the CST816S touch controller and gesture handling:
-      tap to wake / long-press to sleep, up/down swipe for brightness,
-      left/right swipe to navigate the display carousel on the asurada
-      layout (BLE profile switching moved to the keyboard's ADJ layer;
-      other status screen layouts keep left/right swipe as BLE profile).
+      tap to wake and to cycle carousel pages, long-press to show the
+      screensaver. (Swipe up/down for brightness and left/right for pages
+      exist too, but the CST816S often doesn't report drag reliably.)
 
 config ASURADA_TOUCH_SWIPE_THRESHOLD
     int "Minimum swipe distance in pixels"
