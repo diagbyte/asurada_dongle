@@ -187,7 +187,9 @@ void zmk_widget_asurada_connections_init(struct zmk_widget_asurada_connections *
 
         lv_obj_t *name = lv_label_create(row);
         lv_label_set_text(name, row_names[i]);
-        lv_obj_set_style_text_font(name, &FG_Medium_20, LV_PART_MAIN);
+        /* FG_Medium_21 covers 0x20-0x7F (incl. lowercase); FG_Medium_20 stops at
+         * 0x60, so mixed-case labels like "Left"/"Trackball" rendered as tofu. */
+        lv_obj_set_style_text_font(name, &FG_Medium_21, LV_PART_MAIN);
         lv_obj_set_style_text_color(name, lv_color_hex(DISPLAY_COLOR_LAYER_TEXT), LV_PART_MAIN);
         lv_obj_set_flex_grow(name, 1);
 

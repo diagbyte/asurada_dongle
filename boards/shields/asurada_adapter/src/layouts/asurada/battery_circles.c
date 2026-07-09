@@ -361,7 +361,7 @@ int zmk_widget_battery_circles_init(struct zmk_widget_battery_circles *widget, l
     init_styles();
 
     widget->obj = lv_obj_create(parent);
-    lv_obj_set_size(widget->obj, 132, 62);
+    lv_obj_set_size(widget->obj, 132, 44);
     lv_obj_set_style_bg_opa(widget->obj, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(widget->obj, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(widget->obj, 0, LV_PART_MAIN);
@@ -453,9 +453,9 @@ int zmk_widget_battery_circles_init(struct zmk_widget_battery_circles *widget, l
 
     } else {
         int box_width = 24;
-        int box_height = 23;
+        int box_height = 20;
         int bar_width = 8;
-        int bar_height = 62;
+        int bar_height = 40;   /* slimmed from 62 so the strip fits under the modifiers */
         int box_bar_gap = 4;
         int set_gap = 8;
         int unit_width = box_width + box_bar_gap + bar_width;

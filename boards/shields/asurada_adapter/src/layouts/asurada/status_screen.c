@@ -57,11 +57,15 @@ lv_obj_t *zmk_display_status_screen() {
     zmk_widget_battery_circles_init(&battery_circles_widget, kb);
     lv_obj_align(zmk_widget_battery_circles_obj(&battery_circles_widget), LV_ALIGN_BOTTOM_MID, 0, -26);
 
+    /* Layer name (64px) sits just above centre; modifiers below it. The old
+     * -34/+8 pair overlapped because the 64px glyphs are ~72px tall. With the
+     * battery strip slimmed (see battery_circles), this clears WPM readout above
+     * and the battery below. Pixel-tune on hardware. */
     zmk_widget_layer_center_init(&layer_center_widget, kb);
-    lv_obj_align(zmk_widget_layer_center_obj(&layer_center_widget), LV_ALIGN_CENTER, 0, -34);
+    lv_obj_align(zmk_widget_layer_center_obj(&layer_center_widget), LV_ALIGN_CENTER, 0, -16);
 
     zmk_widget_asurada_modifiers_init(&modifiers_widget, kb);
-    lv_obj_align(zmk_widget_asurada_modifiers_obj(&modifiers_widget), LV_ALIGN_CENTER, 0, 8);
+    lv_obj_align(zmk_widget_asurada_modifiers_obj(&modifiers_widget), LV_ALIGN_CENTER, 0, 36);
 
 #if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)
     /* Page 1: the rolling ball. */
@@ -70,7 +74,7 @@ lv_obj_t *zmk_display_status_screen() {
     zmk_widget_asurada_pointing_mode_init(&pointing_mode_widget, tb);
 
     zmk_widget_asurada_tb_battery_init(&tb_battery_widget, tb);
-    lv_obj_align(zmk_widget_asurada_tb_battery_obj(&tb_battery_widget), LV_ALIGN_TOP_MID, 0, 10);
+    lv_obj_align(zmk_widget_asurada_tb_battery_obj(&tb_battery_widget), LV_ALIGN_BOTTOM_MID, 0, -12);
 #endif
 
     /* Last page: connections (one row per split peripheral; labels via Kconfig). */

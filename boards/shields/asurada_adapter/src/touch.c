@@ -134,35 +134,69 @@ static void classify_and_post(int16_t dx, int16_t dy, int64_t dur) {
     }
 }
 
+/*
+ * CST816S coordinate polling. The Zephyr driver only emits INPUT_ABS on the
+ * touch down/up IRQ, so a drag never streams intermediate coordinates and every
+ * gesture reads as a tap (dx=dy~=0) -- exactly the "swipe does nothing, every
+ * touch taps to the next page" symptom seen on hardware. Instead we read the XY
+ * registers straight off the chip: once at touch-down for the start point, then
+ * on a ~22 ms work item for the life of the touch, so a drag builds a real delta.
+ */
+#define CST816S_REG_FINGER_NUM 0x02   /* count; X at 0x03/0x04, Y at 0x05/0x06 */
+#define TOUCH_POLL_MS 22
+
+static const struct i2c_dt_spec cst816s_i2c = I2C_DT_SPEC_GET(DT_NODELABEL(cst816s));
+static struct k_work_delayable touch_poll_work;
+
+static bool cst816s_read_xy(int16_t *x, int16_t *y) {
+    uint8_t b[5];   /* 0x02 count, 0x03 XH, 0x04 XL, 0x05 YH, 0x06 YL */
+    if (i2c_burst_read_dt(&cst816s_i2c, CST816S_REG_FINGER_NUM, b, sizeof(b)) != 0) {
+        return false;
+    }
+    if ((b[0] & 0x0F) == 0) {
+        return false;   /* finger lifted */
+    }
+    *x = (int16_t)(((b[1] & 0x0F) << 8) | b[2]);
+    *y = (int16_t)(((b[3] & 0x0F) << 8) | b[4]);
+    return true;
+}
+
+static void touch_poll_handler(struct k_work *w) {
+    ARG_UNUSED(w);
+    if (!touching) {
+        return;
+    }
+    int16_t x, y;
+    if (cst816s_read_xy(&x, &y)) {
+        last_x = x;
+        last_y = y;
+    }
+    k_work_schedule(&touch_poll_work, K_MSEC(TOUCH_POLL_MS));
+}
+
 static void touch_cb(struct input_event *evt, void *user_data) {
     ARG_UNUSED(user_data);
 
-    switch (evt->type) {
-    case INPUT_EV_ABS:
-        if (evt->code == INPUT_ABS_X) {
-            last_x = (int16_t)evt->value;
-        } else if (evt->code == INPUT_ABS_Y) {
-            last_y = (int16_t)evt->value;
-        }
-        break;
-    case INPUT_EV_KEY:
-        if (evt->code == INPUT_BTN_TOUCH) {
-            if (evt->value) {
-                touching = true;
-                start_x = last_x;
-                start_y = last_y;
-                press_time = k_uptime_get();
-            } else if (touching) {
-                touching = false;
-                int16_t dx = last_x - start_x;
-                int16_t dy = last_y - start_y;
-                int64_t dur = k_uptime_get() - press_time;
-                classify_and_post(dx, dy, dur);
-            }
-        }
-        break;
-    default:
-        break;
+    /* Only the touch up/down edge matters here; coordinates come from
+     * cst816s_read_xy() (raw registers), not the driver's INPUT_ABS events. */
+    if (evt->type != INPUT_EV_KEY || evt->code != INPUT_BTN_TOUCH) {
+        return;
+    }
+
+    if (evt->value) {
+        touching = true;
+        cst816s_read_xy(&last_x, &last_y);   /* seed the start point */
+        start_x = last_x;
+        start_y = last_y;
+        press_time = k_uptime_get();
+        k_work_schedule(&touch_poll_work, K_MSEC(TOUCH_POLL_MS));
+    } else if (touching) {
+        touching = false;
+        k_work_cancel_delayable(&touch_poll_work);
+        int16_t dx = last_x - start_x;
+        int16_t dy = last_y - start_y;
+        int64_t dur = k_uptime_get() - press_time;
+        classify_and_post(dx, dy, dur);
     }
 }
 
@@ -184,8 +218,6 @@ INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_NODELABEL(cst816s)), touch_cb, NULL);
 #define CST816S_REG_IRQ_CTL        0xFA
 #define CST816S_IRQ_EN_CHANGE      0x60   /* EnTouch | EnChange */
 
-static const struct i2c_dt_spec cst816s_i2c = I2C_DT_SPEC_GET(DT_NODELABEL(cst816s));
-
 static void enable_change_irq(struct k_work *w) {
     ARG_UNUSED(w);
     if (!device_is_ready(cst816s_i2c.bus)) {
@@ -202,6 +234,7 @@ static K_WORK_DELAYABLE_DEFINE(irq_ctl_work, enable_change_irq);
 
 static int touch_init(void) {
     k_work_init(&gesture_work, gesture_work_handler);
+    k_work_init_delayable(&touch_poll_work, touch_poll_handler);
     /* Configure change-IRQ ~600 ms after boot, once the CST816S driver's own
      * init has run and the chip is awake. */
     k_work_schedule(&irq_ctl_work, K_MSEC(600));
