@@ -201,7 +201,7 @@ int zmk_widget_wpm_border_init(struct zmk_widget_wpm_border *widget, lv_obj_t *p
     /* Numeric WPM readout near the top of the dial, with a small "WPM" unit. */
     widget->wpm_num = lv_label_create(widget->obj);
     lv_label_set_text(widget->wpm_num, "0");
-    lv_obj_set_style_text_font(widget->wpm_num, &FG_Medium_26, LV_PART_MAIN);
+    lv_obj_set_style_text_font(widget->wpm_num, &FG_Medium_21, LV_PART_MAIN);
     lv_obj_set_style_text_color(widget->wpm_num, lv_color_hex(DISPLAY_COLOR_TACH_NUM), LV_PART_MAIN);
     lv_obj_align(widget->wpm_num, LV_ALIGN_TOP_MID, 0, 16);
 

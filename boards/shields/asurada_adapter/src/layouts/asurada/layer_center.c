@@ -53,7 +53,9 @@ ZMK_SUBSCRIPTION(widget_layer_center, zmk_layer_state_changed);
 
 int zmk_widget_layer_center_init(struct zmk_widget_layer_center *widget, lv_obj_t *parent) {
     widget->obj = lv_label_create(parent);
-    lv_obj_set_style_text_font(widget->obj, &PPF_NarrowThin_64, LV_PART_MAIN);
+    /* FR_Regular_48 (was PPF_NarrowThin_64) -- smaller so it clears the WPM
+     * readout, modifiers, CAPS/NUM and the L/R batteries on one round face. */
+    lv_obj_set_style_text_font(widget->obj, &FR_Regular_48, LV_PART_MAIN);
     lv_obj_set_style_text_color(widget->obj, lv_color_hex(DISPLAY_COLOR_LAYER_TEXT), LV_PART_MAIN);
     lv_obj_set_style_text_align(widget->obj, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_width(widget->obj, 200);

@@ -108,7 +108,7 @@ static void make_cell(struct zmk_widget_asurada_half_batteries *w, int i) {
     lv_obj_set_size(cell, LV_SIZE_CONTENT, 20);
     lv_obj_set_flex_flow(cell, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(cell, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(cell, 4, LV_PART_MAIN);
+    lv_obj_set_style_pad_column(cell, 3, LV_PART_MAIN);
     lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
 
     /* half letter (L / R) */
@@ -121,7 +121,7 @@ static void make_cell(struct zmk_widget_asurada_half_batteries *w, int i) {
     /* battery body: bordered rounded rect */
     lv_obj_t *body = lv_obj_create(cell);
     lv_obj_remove_style_all(body);
-    lv_obj_set_size(body, 24, 13);
+    lv_obj_set_size(body, 22, 12);
     lv_obj_set_style_radius(body, 3, LV_PART_MAIN);
     lv_obj_set_style_border_width(body, 2, LV_PART_MAIN);
     lv_obj_set_style_border_color(body, lv_color_hex(0x9AB0B8), LV_PART_MAIN);
@@ -159,7 +159,7 @@ void zmk_widget_asurada_half_batteries_init(struct zmk_widget_asurada_half_batte
     lv_obj_set_size(w->obj, LV_SIZE_CONTENT, 24);
     lv_obj_set_flex_flow(w->obj, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(w->obj, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(w->obj, 16, LV_PART_MAIN);
+    lv_obj_set_style_pad_column(w->obj, 12, LV_PART_MAIN);
     lv_obj_clear_flag(w->obj, LV_OBJ_FLAG_SCROLLABLE);
 
     for (int i = 0; i < ASURADA_HALF_COUNT; i++) {
