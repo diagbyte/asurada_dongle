@@ -47,7 +47,6 @@ static void tb_battery_render(void) {
             if (fw < 1) fw = 1;
             lv_obj_set_width(w->fill, fw);
             lv_obj_set_style_bg_color(w->fill, lv_color_hex(level_color(tb_level)), LV_PART_MAIN);
-            lv_obj_set_style_bg_color(w->pct, lv_color_hex(level_color(tb_level)), LV_PART_MAIN); /* no-op if pct has no bg */
             lv_obj_set_style_text_color(w->pct, lv_color_hex(level_color(tb_level)), LV_PART_MAIN);
             char t[5];
             snprintf(t, sizeof(t), "%d%%", tb_level);
