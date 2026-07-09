@@ -24,7 +24,7 @@ static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 #define BATT_MID   0xF5A623   /* 20-50% amber */
 #define BATT_LOW   0xF0564D   /* <20% red    */
 #define BATT_OFF   0x505050   /* disconnected */
-#define FILL_MAX_W 18         /* px, inner fill at 100% */
+#define FILL_MAX_W 14         /* px, inner fill at 100% */
 
 static const char *const half_label[ASURADA_HALF_COUNT] = {
     CONFIG_ASURADA_CONN_LABEL_0, CONFIG_ASURADA_CONN_LABEL_1,
@@ -105,7 +105,7 @@ ZMK_SUBSCRIPTION(widget_asurada_half_batteries_connection, zmk_split_central_sta
 static void make_cell(struct zmk_widget_asurada_half_batteries *w, int i) {
     lv_obj_t *cell = lv_obj_create(w->obj);
     lv_obj_remove_style_all(cell);
-    lv_obj_set_size(cell, LV_SIZE_CONTENT, 20);
+    lv_obj_set_size(cell, LV_SIZE_CONTENT, 16);
     lv_obj_set_flex_flow(cell, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(cell, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(cell, 3, LV_PART_MAIN);
@@ -115,14 +115,14 @@ static void make_cell(struct zmk_widget_asurada_half_batteries *w, int i) {
     lv_obj_t *lbl = lv_label_create(cell);
     char letter[2] = { half_label[i][0] ? half_label[i][0] : (char)('L' + i), '\0' };
     lv_label_set_text(lbl, letter);
-    lv_obj_set_style_text_font(lbl, &FG_Medium_21, LV_PART_MAIN);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(lbl, lv_color_hex(DISPLAY_COLOR_LAYER_TEXT), LV_PART_MAIN);
 
     /* battery body: bordered rounded rect */
     lv_obj_t *body = lv_obj_create(cell);
     lv_obj_remove_style_all(body);
-    lv_obj_set_size(body, 22, 12);
-    lv_obj_set_style_radius(body, 3, LV_PART_MAIN);
+    lv_obj_set_size(body, 20, 11);
+    lv_obj_set_style_radius(body, 2, LV_PART_MAIN);
     lv_obj_set_style_border_width(body, 2, LV_PART_MAIN);
     lv_obj_set_style_border_color(body, lv_color_hex(0x9AB0B8), LV_PART_MAIN);
     lv_obj_set_style_border_opa(body, LV_OPA_COVER, LV_PART_MAIN);
@@ -132,7 +132,7 @@ static void make_cell(struct zmk_widget_asurada_half_batteries *w, int i) {
 
     w->fill[i] = lv_obj_create(body);
     lv_obj_remove_style_all(w->fill[i]);
-    lv_obj_set_size(w->fill[i], 1, 7);
+    lv_obj_set_size(w->fill[i], 1, 5);
     lv_obj_align(w->fill[i], LV_ALIGN_LEFT_MID, 0, 0);
     lv_obj_set_style_radius(w->fill[i], 1, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(w->fill[i], LV_OPA_COVER, LV_PART_MAIN);
@@ -141,7 +141,7 @@ static void make_cell(struct zmk_widget_asurada_half_batteries *w, int i) {
     /* positive nub */
     lv_obj_t *nub = lv_obj_create(cell);
     lv_obj_remove_style_all(nub);
-    lv_obj_set_size(nub, 3, 6);
+    lv_obj_set_size(nub, 3, 5);
     lv_obj_set_style_radius(nub, 1, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(nub, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_bg_color(nub, lv_color_hex(0x9AB0B8), LV_PART_MAIN);
@@ -149,14 +149,14 @@ static void make_cell(struct zmk_widget_asurada_half_batteries *w, int i) {
     /* percentage */
     w->pct[i] = lv_label_create(cell);
     lv_label_set_text(w->pct[i], "--");
-    lv_obj_set_style_text_font(w->pct[i], &FG_Medium_20, LV_PART_MAIN);
+    lv_obj_set_style_text_font(w->pct[i], &lv_font_montserrat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(w->pct[i], lv_color_hex(BATT_OFF), LV_PART_MAIN);
 }
 
 void zmk_widget_asurada_half_batteries_init(struct zmk_widget_asurada_half_batteries *w, lv_obj_t *parent) {
     w->obj = lv_obj_create(parent);
     lv_obj_remove_style_all(w->obj);
-    lv_obj_set_size(w->obj, LV_SIZE_CONTENT, 24);
+    lv_obj_set_size(w->obj, LV_SIZE_CONTENT, 18);
     lv_obj_set_flex_flow(w->obj, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(w->obj, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(w->obj, 12, LV_PART_MAIN);
