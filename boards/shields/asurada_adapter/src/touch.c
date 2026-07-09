@@ -2,6 +2,7 @@
 #include <zephyr/device.h>
 #include <zephyr/input/input.h>
 #include <zephyr/sys/atomic.h>
+#include <zephyr/drivers/i2c.h>
 
 #include <zmk/ble.h>
 
@@ -167,8 +168,43 @@ static void touch_cb(struct input_event *evt, void *user_data) {
 
 INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_NODELABEL(cst816s)), touch_cb, NULL);
 
+/*
+ * CST816S drag/swipe fix. By default the chip's IrqCtl (reg 0xFA) fires the INT
+ * mainly on touch down/up, so the Zephyr driver never delivers the intermediate
+ * coordinates a drag needs -- every gesture then reads as a tap (dx=dy≈0). We:
+ *   - 0xFE DisAutoSleep = 1                  : keep the chip awake so the config
+ *                                              sticks (USB-powered dongle, fine).
+ *   - 0xFA IrqCtl = EnTouch | EnChange (0x60): interrupt on every coordinate
+ *     change, so a drag streams INPUT_ABS events and the swipe classifier works.
+ * Written on a delayed work item, after the touch driver's own init has already
+ * configured the chip, so our values win. If the write fails or the chip ignores
+ * it, gestures fall back to tap-only + the auto-page-follow path.
+ */
+#define CST816S_REG_DIS_AUTOSLEEP  0xFE
+#define CST816S_REG_IRQ_CTL        0xFA
+#define CST816S_IRQ_EN_CHANGE      0x60   /* EnTouch | EnChange */
+
+static const struct i2c_dt_spec cst816s_i2c = I2C_DT_SPEC_GET(DT_NODELABEL(cst816s));
+
+static void enable_change_irq(struct k_work *w) {
+    ARG_UNUSED(w);
+    if (!device_is_ready(cst816s_i2c.bus)) {
+        LOG_WRN("CST816S I2C bus not ready; swipe stays tap-only");
+        return;
+    }
+    int e1 = i2c_reg_write_byte_dt(&cst816s_i2c, CST816S_REG_DIS_AUTOSLEEP, 0x01);
+    int e2 = i2c_reg_write_byte_dt(&cst816s_i2c, CST816S_REG_IRQ_CTL, CST816S_IRQ_EN_CHANGE);
+    if (e1 || e2) {
+        LOG_WRN("CST816S reg write failed (%d/%d); swipe may stay tap-only", e1, e2);
+    }
+}
+static K_WORK_DELAYABLE_DEFINE(irq_ctl_work, enable_change_irq);
+
 static int touch_init(void) {
     k_work_init(&gesture_work, gesture_work_handler);
+    /* Configure change-IRQ ~600 ms after boot, once the CST816S driver's own
+     * init has run and the chip is awake. */
+    k_work_schedule(&irq_ctl_work, K_MSEC(600));
     return 0;
 }
 
