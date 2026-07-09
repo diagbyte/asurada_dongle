@@ -74,8 +74,8 @@ XIAO nRF52840 핀(실크스크린 `Dn`):
 ### 설치
 
 > 📎 **완전한 예시 설정** — Totem 키보드 + 이 동글 + Adept 트랙볼 — 은 이 모듈을
-> 실제로 소비하는 [**diagbyte/zmk-config-totem**](https://github.com/diagbyte/zmk-config-totem)의
-> **`dongle` 브랜치**를 참고하세요. (동글 없는 순수 스플릿은 `main` 브랜치.)
+> 실제로 소비하는 [**diagbyte/zmk-config-asurada**](https://github.com/diagbyte/zmk-config-asurada)를
+> 참고하세요.
 
 **키보드**의 `zmk-config` → `config/west.yml`에 이 모듈을 추가:
 
@@ -282,10 +282,9 @@ unconnected.
 ### Installation
 
 > 📎 **Complete example config** — the Totem keyboard + this dongle + an Adept
-> trackball — lives in the **`dongle` branch** of
-> [**diagbyte/zmk-config-totem**](https://github.com/diagbyte/zmk-config-totem), a
-> real config that consumes this module. (The `main` branch is the plain
-> dongle-less split.)
+> trackball — lives in
+> [**diagbyte/zmk-config-asurada**](https://github.com/diagbyte/zmk-config-asurada),
+> a real config that consumes this module.
 
 In your **keyboard's** `zmk-config`, add this module to `config/west.yml`:
 
