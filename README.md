@@ -127,6 +127,30 @@ still exist and can be selected with e.g. `CONFIG_ASURADA_STATUS_SCREEN_RADII=y`
 but they were laid out for a 240×280 panel and are only partially adapted to the
 240×240 round screen. The default is `CONFIG_ASURADA_STATUS_SCREEN_ASURADA`.
 
+## Reusing this display on your own split keyboard
+
+The keymap is **yours** — nothing on the asurada layout is hard-wired to this
+repo's keymap. WPM, the current layer's name (via that layer's `display-name`,
+see [Installation](#installation)), held modifiers, and per-half battery all
+read live ZMK state, so they show up correctly with no module changes.
+
+- **No trackball?** Set `CONFIG_ASURADA_TRACKBALL=n` for a keyboard-only
+  dongle: the carousel becomes two pages (keyboard, connections) and none of
+  the trackball code (rolling ball, pointing-mode text, trackball battery) is
+  built. Default is `y`, matching this repo's own hardware.
+- **Have a trackball?** Point `CONFIG_ASURADA_TRACKBALL_SLOT` at its split
+  slot index, and set `CONFIG_ASURADA_SCROLL_LAYER` / `ASURADA_SCROLL_LAYER2`
+  / `CONFIG_ASURADA_SNIPE_LAYER` (default `6`/`7`/`8`) to your own keymap's
+  scroll/snipe layer indices so the pointing-mode text on the trackball page
+  tracks your layers.
+- **Connections page** shows one row per split peripheral
+  (`ZMK_SPLIT_BLE_PERIPHERAL_COUNT`), labeled from `CONFIG_ASURADA_CONN_LABEL_0`
+  through `..._3` (default `Left` / `Right` / `Trackball` / `Periph 4`) — set
+  these to whatever your peripherals actually are.
+- Also worth a look: `CONFIG_ASURADA_LAYER_NAME_UPPERCASE`,
+  `CONFIG_ASURADA_AUTO_PAGE_FOLLOW`, and the `CONFIG_ASURADA_SCREENSAVER*`
+  options in the Configuration table above.
+
 ## 3D printing
 
 `hardware/asurada_mount.scad` is the **parametric mechanical core**: LCD bezel,
