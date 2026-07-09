@@ -143,6 +143,11 @@ static void classify_and_post(int16_t dx, int16_t dy, int64_t dur) {
  * on a ~22 ms work item for the life of the touch, so a drag builds a real delta.
  */
 #define CST816S_REG_FINGER_NUM 0x02   /* count; X at 0x03/0x04, Y at 0x05/0x06 */
+#define CST816S_REG_GESTURE    0x01   /* on-chip slide classification */
+#define CST816S_GESTURE_UP     0x01
+#define CST816S_GESTURE_DOWN   0x02
+#define CST816S_GESTURE_LEFT   0x03
+#define CST816S_GESTURE_RIGHT  0x04
 #define TOUCH_POLL_MS 22
 
 static const struct i2c_dt_spec cst816s_i2c = I2C_DT_SPEC_GET(DT_NODELABEL(cst816s));
@@ -193,10 +198,24 @@ static void touch_cb(struct input_event *evt, void *user_data) {
     } else if (touching) {
         touching = false;
         k_work_cancel_delayable(&touch_poll_work);
-        int16_t dx = last_x - start_x;
-        int16_t dy = last_y - start_y;
         int64_t dur = k_uptime_get() - press_time;
-        classify_and_post(dx, dy, dur);
+
+        /* Prefer the CST816S's own gesture engine (reg 0x01): it classifies a
+         * slide on-chip, which works even when the coordinate registers don't
+         * stream a drag (this panel latches the down coordinate). Fall back to
+         * the polled coordinate delta for tap / long-press. If a swipe direction
+         * comes out wrong on hardware, remap the four cases below. */
+        uint8_t gid = 0;
+        (void)i2c_reg_read_byte_dt(&cst816s_i2c, CST816S_REG_GESTURE, &gid);
+        switch (gid) {
+        case CST816S_GESTURE_UP:    post_gesture(G_SWIPE_UP);    break;
+        case CST816S_GESTURE_DOWN:  post_gesture(G_SWIPE_DOWN);  break;
+        case CST816S_GESTURE_LEFT:  post_gesture(G_SWIPE_LEFT);  break;
+        case CST816S_GESTURE_RIGHT: post_gesture(G_SWIPE_RIGHT); break;
+        default:
+            classify_and_post(last_x - start_x, last_y - start_y, dur);
+            break;
+        }
     }
 }
 
@@ -217,6 +236,8 @@ INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_NODELABEL(cst816s)), touch_cb, NULL);
 #define CST816S_REG_DIS_AUTOSLEEP  0xFE
 #define CST816S_REG_IRQ_CTL        0xFA
 #define CST816S_IRQ_EN_CHANGE      0x60   /* EnTouch | EnChange */
+#define CST816S_REG_MOTION_MASK    0xEC
+#define CST816S_MOTION_EN_CONT     0x06   /* EnConUD | EnConLR: on-chip slide detect */
 
 static void enable_change_irq(struct k_work *w) {
     ARG_UNUSED(w);
@@ -226,8 +247,11 @@ static void enable_change_irq(struct k_work *w) {
     }
     int e1 = i2c_reg_write_byte_dt(&cst816s_i2c, CST816S_REG_DIS_AUTOSLEEP, 0x01);
     int e2 = i2c_reg_write_byte_dt(&cst816s_i2c, CST816S_REG_IRQ_CTL, CST816S_IRQ_EN_CHANGE);
-    if (e1 || e2) {
-        LOG_WRN("CST816S reg write failed (%d/%d); swipe may stay tap-only", e1, e2);
+    /* Enable the chip's continuous slide-gesture engine so reg 0x01 reports
+     * up/down/left/right -- this is what the touch-up handler reads. */
+    int e3 = i2c_reg_write_byte_dt(&cst816s_i2c, CST816S_REG_MOTION_MASK, CST816S_MOTION_EN_CONT);
+    if (e1 || e2 || e3) {
+        LOG_WRN("CST816S reg write failed (%d/%d/%d); swipe may stay tap-only", e1, e2, e3);
     }
 }
 static K_WORK_DELAYABLE_DEFINE(irq_ctl_work, enable_change_irq);

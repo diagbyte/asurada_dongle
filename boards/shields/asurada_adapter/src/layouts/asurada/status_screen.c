@@ -4,7 +4,8 @@
 #include "asurada_screens.h"
 #include "wpm_border.h"
 #include "layer_center.h"
-#include "battery_circles.h"
+#include "half_batteries.h"
+#include "lock_status.h"
 #if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)
 #include "ball.h"
 #include "trackball_battery.h"
@@ -17,7 +18,8 @@
 
 static struct zmk_widget_wpm_border wpm_border_widget;
 static struct zmk_widget_layer_center layer_center_widget;
-static struct zmk_widget_battery_circles battery_circles_widget;
+static struct zmk_widget_asurada_half_batteries half_batteries_widget;
+static struct zmk_widget_asurada_lock_status lock_status_widget;
 #if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)
 static struct zmk_widget_asurada_ball ball_widget;
 static struct zmk_widget_asurada_tb_battery tb_battery_widget;
@@ -50,22 +52,25 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_t *conn = asurada_screens_page(1);
 #endif
 
-    /* Page 0: existing keyboard status widgets, re-parented onto `kb`. */
+    /* Page 0: keyboard status widgets, re-parented onto `kb`. Vertical order
+     * top->bottom: WPM readout (inside the tach), layer name, held modifiers,
+     * CAPS/NUM locks, then the L/R half batteries. The 64px layer glyphs are
+     * ~72px tall so gaps are tight; pixel-tune from a hardware photo. */
     zmk_widget_wpm_border_init(&wpm_border_widget, kb);
     lv_obj_center(zmk_widget_wpm_border_obj(&wpm_border_widget));
 
-    zmk_widget_battery_circles_init(&battery_circles_widget, kb);
-    lv_obj_align(zmk_widget_battery_circles_obj(&battery_circles_widget), LV_ALIGN_BOTTOM_MID, 0, -26);
-
-    /* Layer name (64px) sits just above centre; modifiers below it. The old
-     * -34/+8 pair overlapped because the 64px glyphs are ~72px tall. With the
-     * battery strip slimmed (see battery_circles), this clears WPM readout above
-     * and the battery below. Pixel-tune on hardware. */
     zmk_widget_layer_center_init(&layer_center_widget, kb);
-    lv_obj_align(zmk_widget_layer_center_obj(&layer_center_widget), LV_ALIGN_CENTER, 0, -16);
+    lv_obj_align(zmk_widget_layer_center_obj(&layer_center_widget), LV_ALIGN_CENTER, 0, -20);
 
     zmk_widget_asurada_modifiers_init(&modifiers_widget, kb);
-    lv_obj_align(zmk_widget_asurada_modifiers_obj(&modifiers_widget), LV_ALIGN_CENTER, 0, 36);
+    lv_obj_align(zmk_widget_asurada_modifiers_obj(&modifiers_widget), LV_ALIGN_CENTER, 0, 30);
+
+    zmk_widget_asurada_lock_status_init(&lock_status_widget, kb);
+    lv_obj_align(zmk_widget_asurada_lock_status_obj(&lock_status_widget), LV_ALIGN_CENTER, 0, 54);
+
+    /* Keyboard-half batteries only (L/R); the trackball has its own page. */
+    zmk_widget_asurada_half_batteries_init(&half_batteries_widget, kb);
+    lv_obj_align(zmk_widget_asurada_half_batteries_obj(&half_batteries_widget), LV_ALIGN_BOTTOM_MID, 0, -24);
 
 #if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)
     /* Page 1: the rolling ball. */
