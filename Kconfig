@@ -175,19 +175,23 @@ config ASURADA_TRACKBALL_SLOT
 #
 # Pointing-mode indicator (trackball page): SCROLL / SNIPE text driven by
 # whichever pointing layer is active. The indices are keymap-specific, so
-# they're exposed as Kconfig instead of hard-wired to one keymap.
+# they're exposed as Kconfig instead of hard-wired to one keymap. Only meaningful
+# with the trackball page, so they depend on ASURADA_TRACKBALL.
 #
 config ASURADA_SCROLL_LAYER
     int "Keymap layer index that means SCROLL (shown on the trackball page)"
     default 6
+    depends on ASURADA_TRACKBALL
 
 config ASURADA_SCROLL_LAYER2
     int "Second SCROLL layer index (scroll-keep); set = SCROLL layer to disable"
     default 7
+    depends on ASURADA_TRACKBALL
 
 config ASURADA_SNIPE_LAYER
     int "Keymap layer index that means SNIPE"
     default 8
+    depends on ASURADA_TRACKBALL
 
 #
 # Connections page: one row per split peripheral (Left/Right/trackball/...),

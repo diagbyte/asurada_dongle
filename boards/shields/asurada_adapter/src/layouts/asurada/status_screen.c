@@ -1,3 +1,4 @@
+#include <zephyr/kernel.h>   /* IS_ENABLED() used below, before other headers pull it in */
 #include <lvgl.h>
 
 #include "asurada_screens.h"
@@ -72,7 +73,7 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_align(zmk_widget_asurada_tb_battery_obj(&tb_battery_widget), LV_ALIGN_TOP_MID, 0, 10);
 #endif
 
-    /* Last page: connections (Left / Right / Trackball dot + battery). */
+    /* Last page: connections (one row per split peripheral; labels via Kconfig). */
     zmk_widget_asurada_connections_init(&connections_widget, conn);
 
 #if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)

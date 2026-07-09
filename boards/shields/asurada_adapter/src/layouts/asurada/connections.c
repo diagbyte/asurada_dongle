@@ -11,9 +11,10 @@
 #include "display_colors.h"
 
 /*
- * Connections page: a title plus one row per split peripheral -- Left, Right,
- * Trackball (slot order 0/1/2; confirm on hardware) -- each row a small
- * connection-status dot and a battery-percent label.
+ * Connections page: a title plus one row per split peripheral (up to
+ * ASURADA_CONN_ROWS), each labeled from CONFIG_ASURADA_CONN_LABEL_n (defaults
+ * Left/Right/Trackball; slot order 0/1/2, confirm on hardware) -- each row a
+ * small connection-status dot and a battery-percent label.
  *
  * Mirrors battery_circles.c's dual ZMK listener wiring: a per-source battery
  * level event and a per-source connection-state event, each fanned out to

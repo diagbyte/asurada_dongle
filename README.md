@@ -144,9 +144,10 @@ read live ZMK state, so they show up correctly with no module changes.
   scroll/snipe layer indices so the pointing-mode text on the trackball page
   tracks your layers.
 - **Connections page** shows one row per split peripheral
-  (`ZMK_SPLIT_BLE_PERIPHERAL_COUNT`), labeled from `CONFIG_ASURADA_CONN_LABEL_0`
-  through `..._3` (default `Left` / `Right` / `Trackball` / `Periph 4`) — set
-  these to whatever your peripherals actually are.
+  (`ZMK_SPLIT_BLE_PERIPHERAL_COUNT`, up to 4 rows), labeled from
+  `CONFIG_ASURADA_CONN_LABEL_0` through `..._3` (default `Left` / `Right` /
+  `Trackball` / `Periph 4`) — set these to whatever your peripherals actually
+  are. Peripherals beyond slot 3 aren't shown.
 - Also worth a look: `CONFIG_ASURADA_LAYER_NAME_UPPERCASE`,
   `CONFIG_ASURADA_AUTO_PAGE_FOLLOW`, and the `CONFIG_ASURADA_SCREENSAVER*`
   options in the Configuration table above.
