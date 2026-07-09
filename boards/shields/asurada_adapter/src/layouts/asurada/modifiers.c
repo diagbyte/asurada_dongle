@@ -26,10 +26,15 @@ struct asurada_mod_state {
 static void modifiers_update_cb(struct asurada_mod_state state) {
     struct zmk_widget_asurada_modifiers *w;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, w, node) {
+        /* Show only the held modifiers; the centered flex row re-packs so the
+         * active ones sit together in the middle instead of four fixed slots
+         * (the four-always layout crowded the tach ring on both sides). */
         for (int i = 0; i < ASURADA_MOD_COUNT; i++) {
-            lv_color_t c = lv_color_hex(state.active[i] ? DISPLAY_COLOR_MOD_ACTIVE
-                                                        : DISPLAY_COLOR_MOD_INACTIVE);
-            lv_obj_set_style_text_color(w->labels[i], c, LV_PART_MAIN);
+            if (state.active[i]) {
+                lv_obj_clear_flag(w->labels[i], LV_OBJ_FLAG_HIDDEN);
+            } else {
+                lv_obj_add_flag(w->labels[i], LV_OBJ_FLAG_HIDDEN);
+            }
         }
     }
 }
@@ -56,14 +61,17 @@ void zmk_widget_asurada_modifiers_init(struct zmk_widget_asurada_modifiers *w, l
     lv_obj_set_style_border_width(w->obj, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(w->obj, 0, LV_PART_MAIN);
     lv_obj_set_flex_flow(w->obj, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(w->obj, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_flex_align(w->obj, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(w->obj, 14, LV_PART_MAIN);
     lv_obj_clear_flag(w->obj, LV_OBJ_FLAG_SCROLLABLE);
 
     for (int i = 0; i < ASURADA_MOD_COUNT; i++) {
         w->labels[i] = lv_label_create(w->obj);
         lv_label_set_text(w->labels[i], mod_text[i]);
         lv_obj_set_style_text_font(w->labels[i], &FG_Medium_20, LV_PART_MAIN);
-        lv_obj_set_style_text_color(w->labels[i], lv_color_hex(DISPLAY_COLOR_MOD_INACTIVE), LV_PART_MAIN);
+        /* Only shown while held, so always the active colour; hidden by default. */
+        lv_obj_set_style_text_color(w->labels[i], lv_color_hex(DISPLAY_COLOR_MOD_ACTIVE), LV_PART_MAIN);
+        lv_obj_add_flag(w->labels[i], LV_OBJ_FLAG_HIDDEN);
     }
 
     sys_slist_append(&widgets, &w->node);

@@ -459,7 +459,12 @@ int zmk_widget_battery_circles_init(struct zmk_widget_battery_circles *widget, l
         int box_bar_gap = 4;
         int set_gap = 8;
         int unit_width = box_width + box_bar_gap + bar_width;
-        const char *titles[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9"};
+        /* Box label = first letter of each peripheral's connection label
+         * (Left->L, Right->R, Trackball->T) so the strip reads L/R/T, not 1/2/3. */
+        static const char *const conn_names[] = {
+            CONFIG_ASURADA_CONN_LABEL_0, CONFIG_ASURADA_CONN_LABEL_1,
+            CONFIG_ASURADA_CONN_LABEL_2, CONFIG_ASURADA_CONN_LABEL_3,
+        };
 
         for (int i = 0; i < PERIPHERAL_COUNT && i < 9; i++) {
             int unit_x = i * (unit_width + set_gap);
@@ -476,7 +481,8 @@ int zmk_widget_battery_circles_init(struct zmk_widget_battery_circles *widget, l
 
             lv_obj_t *title_label = lv_label_create(label_box);
             peripheral_labels[i] = title_label;
-            lv_label_set_text(title_label, titles[i]);
+            char title[2] = { (i < 4 && conn_names[i][0]) ? conn_names[i][0] : (char)('1' + i), '\0' };
+            lv_label_set_text(title_label, title);
             lv_obj_set_style_text_font(title_label, &FG_Medium_21, LV_PART_MAIN);
             lv_obj_add_style(title_label, &style_label_disconnected, LV_PART_MAIN);
             lv_obj_align(title_label, LV_ALIGN_CENTER, 0, 1);
