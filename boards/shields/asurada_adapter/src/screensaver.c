@@ -39,8 +39,8 @@ LOG_MODULE_REGISTER(asurada_saver, LOG_LEVEL_WRN);
 #define TICK_MS     40
 #define FACE_C      120        /* 240/2 face centre */
 #define EYE_R       32         /* LED radius, px */
-#define CLUSTER_R   58         /* centre -> each LED centre (2x2 spread) */
-#define GLANCE_DEG  30         /* random glance amplitude, +/- degrees */
+#define CLUSTER_R   64         /* centre -> each LED centre (2x2 spread) */
+#define GLANCE_DEG  24         /* random glance amplitude, +/- degrees */
 
 static lv_obj_t *eyes_screen;
 static lv_obj_t *eyes[EYE_COUNT];
@@ -78,7 +78,7 @@ static void glance_tick(lv_timer_t *t) {
      * the flicker and ghost trails on the GC9A01. */
     float diff = tgt_angle - cur_angle;
     if (fabsf(diff) > 0.002f) {
-        cur_angle += diff * 0.10f;
+        cur_angle += diff * 0.18f;   /* snappier ease -> less time spent stepping */
         place_eyes(cur_angle);
     }
 
@@ -86,7 +86,7 @@ static void glance_tick(lv_timer_t *t) {
     if (--glance_countdown <= 0) {
         float frac = (float)(xrand() % 2001) / 1000.0f - 1.0f;   /* -1..1 */
         tgt_angle = frac * (float)(GLANCE_DEG * M_PI / 180.0f);
-        glance_countdown = 45 + (xrand() % 105);                 /* ~1.8..6.0 s */
+        glance_countdown = 60 + (xrand() % 140);                 /* ~2.4..8.0 s: calmer */
     }
 }
 
@@ -104,12 +104,11 @@ static void build_eyes_screen(void) {
         lv_obj_set_style_bg_opa(eyes[i], LV_OPA_COVER, LV_PART_MAIN);
         lv_obj_set_style_bg_color(eyes[i], lv_color_hex(EYE_GREEN), LV_PART_MAIN);
         lv_obj_set_style_border_color(eyes[i], lv_color_hex(EYE_RING), LV_PART_MAIN);
-        lv_obj_set_style_border_width(eyes[i], 3, LV_PART_MAIN);
+        lv_obj_set_style_border_width(eyes[i], 4, LV_PART_MAIN);
         lv_obj_set_style_border_opa(eyes[i], LV_OPA_COVER, LV_PART_MAIN);
-        lv_obj_set_style_shadow_color(eyes[i], lv_color_hex(EYE_GREEN), LV_PART_MAIN);
-        lv_obj_set_style_shadow_width(eyes[i], 8, LV_PART_MAIN);   /* modest glow, less trail */
-        lv_obj_set_style_shadow_spread(eyes[i], 2, LV_PART_MAIN);
-        lv_obj_set_style_shadow_opa(eyes[i], LV_OPA_COVER, LV_PART_MAIN);
+        /* No shadow/glow: on the GC9A01 the soft shadow smeared into ghost trails
+         * as the cluster rotated ("이미지 깨짐"). A slightly thicker bright ring
+         * keeps the LED look without anything to trail. */
         lv_obj_clear_flag(eyes[i], LV_OBJ_FLAG_SCROLLABLE);
     }
 
