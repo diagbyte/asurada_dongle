@@ -36,6 +36,9 @@ LOG_MODULE_REGISTER(asurada_saver, LOG_LEVEL_WRN);
 #define EYE_COUNT   4
 #define EYE_GREEN   0x5FE23F   /* LED core */
 #define EYE_RING    0xA8FF88   /* brighter ring */
+#define EYE_LIT     0x9BF56B   /* dome gradient: lit top    */
+#define EYE_DARK    0x1F7314   /* dome gradient: shadow bottom */
+#define EYE_GLINT   0xEEFFDC   /* specular highlight          */
 #define TICK_MS     40
 #define FACE_C      120        /* 240/2 face centre */
 #define EYE_R       32         /* LED radius, px */
@@ -102,14 +105,25 @@ static void build_eyes_screen(void) {
         lv_obj_set_size(eyes[i], EYE_R * 2, EYE_R * 2);
         lv_obj_set_style_radius(eyes[i], LV_RADIUS_CIRCLE, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(eyes[i], LV_OPA_COVER, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(eyes[i], lv_color_hex(EYE_GREEN), LV_PART_MAIN);
+        /* Vertical gradient (lit top -> shadowed bottom) + a top-left glint fake a
+         * 3D LED dome. Both live INSIDE the circle, so -- unlike the old soft glow
+         * -- there is nothing to smear into a ghost trail when the cluster rotates. */
+        lv_obj_set_style_bg_color(eyes[i], lv_color_hex(EYE_LIT), LV_PART_MAIN);
+        lv_obj_set_style_bg_grad_color(eyes[i], lv_color_hex(EYE_DARK), LV_PART_MAIN);
+        lv_obj_set_style_bg_grad_dir(eyes[i], LV_GRAD_DIR_VER, LV_PART_MAIN);
         lv_obj_set_style_border_color(eyes[i], lv_color_hex(EYE_RING), LV_PART_MAIN);
-        lv_obj_set_style_border_width(eyes[i], 4, LV_PART_MAIN);
+        lv_obj_set_style_border_width(eyes[i], 2, LV_PART_MAIN);
         lv_obj_set_style_border_opa(eyes[i], LV_OPA_COVER, LV_PART_MAIN);
-        /* No shadow/glow: on the GC9A01 the soft shadow smeared into ghost trails
-         * as the cluster rotated ("이미지 깨짐"). A slightly thicker bright ring
-         * keeps the LED look without anything to trail. */
         lv_obj_clear_flag(eyes[i], LV_OBJ_FLAG_SCROLLABLE);
+
+        lv_obj_t *glint = lv_obj_create(eyes[i]);
+        lv_obj_remove_style_all(glint);
+        lv_obj_set_size(glint, 16, 16);
+        lv_obj_align(glint, LV_ALIGN_TOP_LEFT, 9, 7);
+        lv_obj_set_style_radius(glint, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(glint, lv_color_hex(EYE_GLINT), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(glint, LV_OPA_50, LV_PART_MAIN);
+        lv_obj_clear_flag(glint, LV_OBJ_FLAG_SCROLLABLE);
     }
 
     /* No "TAP TO WAKE" hint: the 2x2 eye cluster fills the round face, leaving no
