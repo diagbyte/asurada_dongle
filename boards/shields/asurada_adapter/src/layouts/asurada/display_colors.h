@@ -16,6 +16,11 @@
 #define DISPLAY_COLOR_WPM_FILL_MID  0xF5A623
 #define DISPLAY_COLOR_WPM_FILL_HIGH 0xFF2D2D
 
+/* Tachometer accents: tick marks, redline band, and the numeric readout. */
+#define DISPLAY_COLOR_TACH_TICK   0x5F8C96   /* normal tick / unit text (slate) */
+#define DISPLAY_COLOR_TACH_NUM    0x35E0FF   /* big WPM number (cyan) */
+/* (redline band + redline ticks reuse DISPLAY_COLOR_WPM_FILL_HIGH = 0xFF2D2D) */
+
 /* Centered layer name */
 #define DISPLAY_COLOR_LAYER_TEXT    0xEAFDFF
 
