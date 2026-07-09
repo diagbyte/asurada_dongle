@@ -3,7 +3,7 @@
 #include <lvgl.h>
 #include <zephyr/kernel.h>
 
-#define ASURADA_CONN_ROWS 3   /* Left, Right, Trackball */
+#define ASURADA_CONN_ROWS 4   /* max rows / label capacity; rendered = min(PERIPHERAL_COUNT, this) */
 
 struct zmk_widget_asurada_connections {
     sys_snode_t node;

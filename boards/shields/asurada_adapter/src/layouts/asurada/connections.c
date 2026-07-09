@@ -30,7 +30,15 @@ static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 #define CONN_DOT_CONNECTED    0x35C46B
 #define CONN_DOT_DISCONNECTED 0xF0564D
 
-static const char *const row_names[ASURADA_CONN_ROWS] = {"Left", "Right", "Trackball"};
+/* Rendered rows = the smaller of the actual peripheral count and our label
+ * capacity; the fixed dot[]/pct[]/row_battery[]/row_connected[] arrays stay
+ * sized ASURADA_CONN_ROWS so out-of-range indices are always memory-safe. */
+#define CONN_N_ROWS MIN(PERIPHERAL_COUNT, ASURADA_CONN_ROWS)
+
+static const char *const row_names[ASURADA_CONN_ROWS] = {
+    CONFIG_ASURADA_CONN_LABEL_0, CONFIG_ASURADA_CONN_LABEL_1,
+    CONFIG_ASURADA_CONN_LABEL_2, CONFIG_ASURADA_CONN_LABEL_3,
+};
 
 static uint8_t row_battery[ASURADA_CONN_ROWS] = {0};
 static bool row_connected[ASURADA_CONN_ROWS] = {false};
@@ -77,7 +85,7 @@ static void update_row_display(uint8_t row) {
 }
 
 static void set_battery_level(uint8_t source, uint8_t level) {
-    if (source >= PERIPHERAL_COUNT || source >= ASURADA_CONN_ROWS) {
+    if (source >= PERIPHERAL_COUNT || source >= CONN_N_ROWS) {
         return;
     }
     row_battery[source] = level;
@@ -85,7 +93,7 @@ static void set_battery_level(uint8_t source, uint8_t level) {
 }
 
 static void set_connection_status(uint8_t source, bool connected) {
-    if (source >= PERIPHERAL_COUNT || source >= ASURADA_CONN_ROWS) {
+    if (source >= PERIPHERAL_COUNT || source >= CONN_N_ROWS) {
         return;
     }
     row_connected[source] = connected;
@@ -158,7 +166,7 @@ void zmk_widget_asurada_connections_init(struct zmk_widget_asurada_connections *
     lv_obj_set_style_text_font(title, &FG_Medium_21, LV_PART_MAIN);
     lv_obj_set_style_text_color(title, lv_color_hex(DISPLAY_COLOR_LAYER_TEXT), LV_PART_MAIN);
 
-    for (int i = 0; i < ASURADA_CONN_ROWS; i++) {
+    for (int i = 0; i < CONN_N_ROWS; i++) {
         lv_obj_t *row = lv_obj_create(w->obj);
         lv_obj_remove_style_all(row);
         lv_obj_set_size(row, 176, 28);

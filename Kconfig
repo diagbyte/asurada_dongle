@@ -189,4 +189,25 @@ config ASURADA_SNIPE_LAYER
     int "Keymap layer index that means SNIPE"
     default 8
 
+#
+# Connections page: one row per split peripheral (Left/Right/trackball/...),
+# labeled from these strings. Rendered row count follows the actual peripheral
+# count at build time; unused labels are simply not shown.
+#
+config ASURADA_CONN_LABEL_0
+    string "Connections page label for split peripheral slot 0"
+    default "Left"
+
+config ASURADA_CONN_LABEL_1
+    string "Connections page label for split peripheral slot 1"
+    default "Right"
+
+config ASURADA_CONN_LABEL_2
+    string "Connections page label for split peripheral slot 2"
+    default "Trackball"
+
+config ASURADA_CONN_LABEL_3
+    string "Connections page label for split peripheral slot 3"
+    default "Periph 4"
+
 endif # SHIELD_ASURADA_ADAPTER
