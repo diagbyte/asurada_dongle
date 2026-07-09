@@ -11,6 +11,10 @@ config ZMK_DISPLAY_STATUS_SCREEN_CUSTOM
 config ZMK_WPM
     default y
 
+# Host CapsLock/NumLock LED state for the keyboard-page lock_status widget.
+config ZMK_HID_INDICATORS
+    default y
+
 config LV_Z_MEM_POOL_SIZE
     default 20000
 
