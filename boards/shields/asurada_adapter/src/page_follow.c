@@ -7,6 +7,8 @@
 #include "asurada_screens.h"
 
 #define KEYBOARD_PAGE  0
+
+#if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)
 #define TRACKBALL_PAGE 1
 
 /* Trackball motion -> trackball page. Separate INPUT_EV_REL tap, independent of
@@ -18,6 +20,7 @@ static void pf_input_cb(struct input_event *evt, void *user_data) {
     }
 }
 INPUT_CALLBACK_DEFINE(NULL, pf_input_cb, NULL);
+#endif
 
 /* Key press -> keyboard page. */
 static int pf_key_listener(const zmk_event_t *eh) {
