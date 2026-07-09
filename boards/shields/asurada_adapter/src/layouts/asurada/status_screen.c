@@ -6,6 +6,7 @@
 #include "layer_center.h"
 #include "half_batteries.h"
 #include "lock_status.h"
+#include "page_dots.h"
 #if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)
 #include "ball.h"
 #include "trackball_battery.h"
@@ -20,6 +21,7 @@ static struct zmk_widget_wpm_border wpm_border_widget;
 static struct zmk_widget_layer_center layer_center_widget;
 static struct zmk_widget_asurada_half_batteries half_batteries_widget;
 static struct zmk_widget_asurada_lock_status lock_status_widget;
+static struct zmk_widget_asurada_page_dots page_dots_widget;
 #if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)
 static struct zmk_widget_asurada_ball ball_widget;
 static struct zmk_widget_asurada_tb_battery tb_battery_widget;
@@ -28,13 +30,16 @@ static struct zmk_widget_asurada_pointing_mode pointing_mode_widget;
 static struct zmk_widget_asurada_connections connections_widget;
 static struct zmk_widget_asurada_modifiers modifiers_widget;
 
-#if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)
 static void on_page_active(int page, bool active) {
+    if (active) {
+        zmk_widget_asurada_page_dots_set_active(&page_dots_widget, page);
+    }
+#if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)
     if (page == 1) {                 /* trackball page */
         zmk_widget_asurada_ball_set_active(&ball_widget, active);
     }
-}
 #endif
+}
 
 lv_obj_t *zmk_display_status_screen() {
     lv_obj_t *screen = lv_obj_create(NULL);
@@ -70,7 +75,7 @@ lv_obj_t *zmk_display_status_screen() {
 
     /* Keyboard-half batteries only (L/R); the trackball has its own page. */
     zmk_widget_asurada_half_batteries_init(&half_batteries_widget, kb);
-    lv_obj_align(zmk_widget_asurada_half_batteries_obj(&half_batteries_widget), LV_ALIGN_BOTTOM_MID, 0, -26);
+    lv_obj_align(zmk_widget_asurada_half_batteries_obj(&half_batteries_widget), LV_ALIGN_BOTTOM_MID, 0, -32);
 
 #if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)
     /* Page 1: the rolling ball. */
@@ -79,14 +84,21 @@ lv_obj_t *zmk_display_status_screen() {
     zmk_widget_asurada_pointing_mode_init(&pointing_mode_widget, tb);
 
     zmk_widget_asurada_tb_battery_init(&tb_battery_widget, tb);
-    lv_obj_align(zmk_widget_asurada_tb_battery_obj(&tb_battery_widget), LV_ALIGN_BOTTOM_MID, 0, -12);
+    lv_obj_align(zmk_widget_asurada_tb_battery_obj(&tb_battery_widget), LV_ALIGN_BOTTOM_MID, 0, -32);
 #endif
 
     /* Last page: connections (one row per split peripheral; labels via Kconfig). */
     zmk_widget_asurada_connections_init(&connections_widget, conn);
 
+    /* Carousel position dots on the root screen (fixed; persists across pages).
+     * Must exist before set_activate_cb, which announces the initial page. */
 #if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)
-    asurada_screens_set_activate_cb(on_page_active);
+    zmk_widget_asurada_page_dots_init(&page_dots_widget, screen, 3);
+#else
+    zmk_widget_asurada_page_dots_init(&page_dots_widget, screen, 2);
 #endif
+    lv_obj_align(zmk_widget_asurada_page_dots_obj(&page_dots_widget), LV_ALIGN_BOTTOM_MID, 0, -8);
+
+    asurada_screens_set_activate_cb(on_page_active);
     return screen;
 }

@@ -25,7 +25,7 @@ static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 #define BATT_MID     0xF5A623   /* 20–50% amber */
 #define BATT_LOW     0xF0564D   /* <20% red    */
 #define BATT_OFF     0x505050   /* disconnected */
-#define FILL_MAX_W   20         /* px, inner fill at 100% */
+#define FILL_MAX_W   14         /* px, inner fill at 100% (matches half_batteries) */
 
 static uint8_t tb_level = 0;
 static bool tb_connected = false;
@@ -106,17 +106,24 @@ void zmk_widget_asurada_tb_battery_init(struct zmk_widget_asurada_tb_battery *w,
     /* container: [ battery body (+nub) ] [ NN% ] laid out in a row */
     w->obj = lv_obj_create(parent);
     lv_obj_remove_style_all(w->obj);
-    lv_obj_set_size(w->obj, 74, 20);
+    lv_obj_set_size(w->obj, LV_SIZE_CONTENT, 16);
     lv_obj_set_flex_flow(w->obj, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(w->obj, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(w->obj, 6, LV_PART_MAIN);
+    lv_obj_set_style_pad_column(w->obj, 3, LV_PART_MAIN);
     lv_obj_clear_flag(w->obj, LV_OBJ_FLAG_SCROLLABLE);
 
-    /* battery body: bordered rounded rect */
+    /* trackball label (T) so the cell reads the same as the keyboard L/R cells */
+    lv_obj_t *lbl = lv_label_create(w->obj);
+    char letter[2] = { CONFIG_ASURADA_CONN_LABEL_2[0] ? CONFIG_ASURADA_CONN_LABEL_2[0] : 'T', '\0' };
+    lv_label_set_text(lbl, letter);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_color(lbl, lv_color_hex(DISPLAY_COLOR_LAYER_TEXT), LV_PART_MAIN);
+
+    /* battery body: bordered rounded rect (same dims as half_batteries) */
     lv_obj_t *body = lv_obj_create(w->obj);
     lv_obj_remove_style_all(body);
-    lv_obj_set_size(body, 26, 14);
-    lv_obj_set_style_radius(body, 3, LV_PART_MAIN);
+    lv_obj_set_size(body, 20, 11);
+    lv_obj_set_style_radius(body, 2, LV_PART_MAIN);
     lv_obj_set_style_border_width(body, 2, LV_PART_MAIN);
     lv_obj_set_style_border_color(body, lv_color_hex(0x9AB0B8), LV_PART_MAIN);
     lv_obj_set_style_border_opa(body, LV_OPA_COVER, LV_PART_MAIN);
@@ -127,16 +134,17 @@ void zmk_widget_asurada_tb_battery_init(struct zmk_widget_asurada_tb_battery *w,
     /* inner fill bar, left-aligned, width ∝ level */
     w->fill = lv_obj_create(body);
     lv_obj_remove_style_all(w->fill);
-    lv_obj_set_size(w->fill, 1, 8);
+    lv_obj_set_size(w->fill, 1, 5);
     lv_obj_align(w->fill, LV_ALIGN_LEFT_MID, 0, 0);
     lv_obj_set_style_radius(w->fill, 1, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(w->fill, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_bg_color(w->fill, lv_color_hex(BATT_OFF), LV_PART_MAIN);
+    /* fill sizing/colour handled in tb_battery_render(); height matches body */
 
     /* positive nub on the right of the body */
     lv_obj_t *nub = lv_obj_create(w->obj);
     lv_obj_remove_style_all(nub);
-    lv_obj_set_size(nub, 3, 7);
+    lv_obj_set_size(nub, 3, 5);
     lv_obj_set_style_radius(nub, 1, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(nub, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_bg_color(nub, lv_color_hex(0x9AB0B8), LV_PART_MAIN);
@@ -144,7 +152,7 @@ void zmk_widget_asurada_tb_battery_init(struct zmk_widget_asurada_tb_battery *w,
     /* percentage label */
     w->pct = lv_label_create(w->obj);
     lv_label_set_text(w->pct, "--");
-    lv_obj_set_style_text_font(w->pct, &FG_Medium_20, LV_PART_MAIN);
+    lv_obj_set_style_text_font(w->pct, &lv_font_montserrat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(w->pct, lv_color_hex(BATT_OFF), LV_PART_MAIN);
 
     sys_slist_append(&widgets, &w->node);
