@@ -5,6 +5,7 @@
 #include "layer_center.h"
 #include "battery_circles.h"
 #include "ball.h"
+#include "trackball_battery.h"
 #include "pointing_mode.h"
 #include "connections.h"
 #include "modifiers.h"
@@ -15,6 +16,7 @@ static struct zmk_widget_wpm_border wpm_border_widget;
 static struct zmk_widget_layer_center layer_center_widget;
 static struct zmk_widget_battery_circles battery_circles_widget;
 static struct zmk_widget_asurada_ball ball_widget;
+static struct zmk_widget_asurada_tb_battery tb_battery_widget;
 static struct zmk_widget_asurada_pointing_mode pointing_mode_widget;
 static struct zmk_widget_asurada_connections connections_widget;
 static struct zmk_widget_asurada_modifiers modifiers_widget;
@@ -52,6 +54,9 @@ lv_obj_t *zmk_display_status_screen() {
     zmk_widget_asurada_ball_init(&ball_widget, tb);
 
     zmk_widget_asurada_pointing_mode_init(&pointing_mode_widget, tb);
+
+    zmk_widget_asurada_tb_battery_init(&tb_battery_widget, tb);
+    lv_obj_align(zmk_widget_asurada_tb_battery_obj(&tb_battery_widget), LV_ALIGN_TOP_MID, 0, 10);
 
     /* Page 2: connections (Left / Right / Trackball dot + battery). */
     zmk_widget_asurada_connections_init(&connections_widget, conn);

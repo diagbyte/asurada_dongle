@@ -154,6 +154,14 @@ config ASURADA_AUTO_PAGE_FOLLOW
       panel (whose swipe support is flaky on some CST816S modules). Set to n if
       you prefer to stay on a page and navigate only by touch swipe.
 
+config ASURADA_TRACKBALL_SLOT
+    int "Split peripheral slot index that is the trackball (its battery shows on the trackball page)"
+    default 2
+    help
+      Which split-central peripheral slot the trackball bonds to (same index as
+      the Connections page row). Confirm on hardware; change if the trackball
+      battery shows on the wrong slot.
+
 #
 # Pointing-mode indicator (trackball page): SCROLL / SNIPE text driven by
 # whichever pointing layer is active. The indices are keymap-specific, so
