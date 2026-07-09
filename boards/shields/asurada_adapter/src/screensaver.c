@@ -113,12 +113,19 @@ static void build_eyes_screen(void) {
         lv_obj_clear_flag(eyes[i], LV_OBJ_FLAG_SCROLLABLE);
     }
 
+    /* The wake hint uses a layout-specific font (FG_Medium_20). screensaver.c is
+     * compiled for ANY layout when CONFIG_ASURADA_SCREENSAVER=y, but that font is
+     * only declared by the asurada/classic/operator layouts -- guard it so a
+     * radii/field build (which the generic module must still support) compiles.
+     * Mirrors the layout guard in custom_status_screen.c / touch.c. */
+#if defined(CONFIG_ASURADA_STATUS_SCREEN_ASURADA)
     lv_obj_t *wake = lv_label_create(eyes_screen);
     lv_label_set_text(wake, "TAP TO WAKE");
     lv_obj_set_style_text_font(wake, &FG_Medium_20, LV_PART_MAIN);
     lv_obj_set_style_text_color(wake, lv_color_hex(0x3A8A46), LV_PART_MAIN);
     lv_obj_set_style_text_letter_space(wake, 2, LV_PART_MAIN);
     lv_obj_align(wake, LV_ALIGN_TOP_MID, 0, 30);
+#endif
 
     cur_angle = 0.0f;
     tgt_angle = 0.0f;
