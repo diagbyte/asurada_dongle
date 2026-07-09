@@ -15,14 +15,12 @@
 #define LON_STEP 12                    /* degrees between meridian samples */
 #define K_ROT    0.010f                /* px of drag -> radians */
 #define DECAY    0.92f
+#define DOT_R    1                     /* dot half-extent, px (3x3 filled dot) */
 
 /* Precomputed unit-sphere surface points (lat/long grid). */
 #define MAX_PTS 512
 static float pts[MAX_PTS][3];
 static int   n_pts;
-
-/* Canvas backing buffer (ARGB8888), static like radii/layer_indicator.c. */
-static uint8_t canvas_buf[LV_CANVAS_BUF_SIZE(BALL_SZ, BALL_SZ, 32, 1)];
 
 static void build_points(void) {
     n_pts = 0;
@@ -56,8 +54,20 @@ static void apply_rot(float rot[9], float dax, float day) {
     for (int i = 0; i < 9; i++) rot[i] = u[i];
 }
 
-static void redraw(struct zmk_widget_asurada_ball *w) {
-    lv_canvas_fill_bg(w->canvas, lv_color_black(), LV_OPA_TRANSP);
+static void ball_draw_cb(lv_event_t *e) {
+    struct zmk_widget_asurada_ball *w = lv_event_get_user_data(e);
+    lv_obj_t *obj = lv_event_get_target(e);
+    lv_layer_t *layer = lv_event_get_layer(e);
+
+    lv_area_t coords;
+    lv_obj_get_coords(obj, &coords);
+    int32_t ox = coords.x1, oy = coords.y1;
+
+    lv_draw_rect_dsc_t dot;
+    lv_draw_rect_dsc_init(&dot);
+    dot.bg_color = lv_color_make(255, 210, 200);
+    dot.bg_opa = LV_OPA_COVER;
+
     const float *r = w->rot;
     for (int i = 0; i < n_pts; i++) {
         float x = pts[i][0], y = pts[i][1], z = pts[i][2];
@@ -67,12 +77,10 @@ static void redraw(struct zmk_widget_asurada_ball *w) {
         float Y = r[3] * x + r[4] * y + r[5] * z;
         int px = BALL_C + (int)(X * BALL_R);
         int py = BALL_C - (int)(Y * BALL_R);
-        if (px < 0 || px >= BALL_SZ || py < 0 || py >= BALL_SZ) {
-            continue;
-        }
-        lv_opa_t opa = (lv_opa_t)(60 + Z * 195.0f); /* depth shade */
-        lv_color_t col = lv_color_make(255, 210, 200);
-        lv_canvas_set_px(w->canvas, px, py, col, opa);
+        if (px < 0 || px >= BALL_SZ || py < 0 || py >= BALL_SZ) continue;
+        dot.bg_opa = (lv_opa_t)(60 + Z * 195.0f);    /* depth shade */
+        lv_area_t a = { ox + px - DOT_R, oy + py - DOT_R, ox + px + DOT_R, oy + py + DOT_R };
+        lv_draw_rect(layer, &dot, &a);
     }
 }
 
@@ -90,7 +98,7 @@ static void tick(lv_timer_t *t) {
         }
     }
     apply_rot(w->rot, w->vx, w->vy);
-    redraw(w);
+    lv_obj_invalidate(w->overlay);
 }
 
 lv_obj_t *zmk_widget_asurada_ball_obj(struct zmk_widget_asurada_ball *w) {
@@ -139,12 +147,14 @@ void zmk_widget_asurada_ball_init(struct zmk_widget_asurada_ball *w, lv_obj_t *p
     lv_obj_set_style_bg_color(hi, lv_color_hex(0xFF8F82), 0);
     lv_obj_set_style_bg_opa(hi, LV_OPA_40, 0);
 
-    /* Transparent canvas overlay for the rotating surface dots. */
-    w->canvas = lv_canvas_create(w->cont);
-    lv_canvas_set_buffer(w->canvas, canvas_buf, BALL_SZ, BALL_SZ, LV_COLOR_FORMAT_ARGB8888);
-    lv_obj_center(w->canvas);
-    lv_canvas_fill_bg(w->canvas, lv_color_black(), LV_OPA_TRANSP);
+    /* Transparent overlay drawn on top of the base disc; dots are rendered in
+     * its LV_EVENT_DRAW_MAIN handler (no static buffer). Created last -> on top. */
+    w->overlay = lv_obj_create(w->cont);
+    lv_obj_remove_style_all(w->overlay);
+    lv_obj_set_size(w->overlay, BALL_SZ, BALL_SZ);
+    lv_obj_center(w->overlay);
+    lv_obj_clear_flag(w->overlay, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(w->overlay, ball_draw_cb, LV_EVENT_DRAW_MAIN, w);
 
-    redraw(w);
     w->timer = lv_timer_create(tick, 33, w);
 }

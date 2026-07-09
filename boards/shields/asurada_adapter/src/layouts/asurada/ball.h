@@ -1,16 +1,14 @@
 #pragma once
 #include <lvgl.h>
 
-#define BALL_SZ 84             /* widget/canvas square, px (RAM-bounded: ARGB8888
-                                * canvas is BALL_SZ^2*4 bytes of static .bss;
-                                * 84 -> ~28.2 KB. Phase-1.1: switch to an
-                                * LV_EVENT_DRAW_MAIN draw like line_segments.c to
-                                * drop the static buffer and allow a larger ball) */
+#define BALL_SZ 132            /* widget square, px. No static buffer anymore
+                                * (dots drawn via LV_EVENT_DRAW_MAIN), so this is
+                                * bounded by layout, not RAM. Tune to taste. */
 
 struct zmk_widget_asurada_ball {
     lv_obj_t *cont;            /* container */
     lv_obj_t *base;            /* static shaded red disc */
-    lv_obj_t *canvas;          /* transparent overlay: rotating dots */
+    lv_obj_t *overlay;         /* transparent DRAW_MAIN layer for the dots */
     lv_timer_t *timer;
     float rot[9];              /* 3x3 orientation matrix, row-major */
     float vx, vy;              /* angular momentum (rad/frame) */
