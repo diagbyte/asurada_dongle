@@ -55,7 +55,6 @@ static int16_t last_x, last_y;
 static int16_t start_x, start_y;
 static int64_t press_time;
 static bool touching;
-static bool tap_was_eyes;   /* screensaver state latched at touch-down (race-free tap) */
 
 static void gesture_work_handler(struct k_work *w) {
     ARG_UNUSED(w);
@@ -63,15 +62,11 @@ static void gesture_work_handler(struct k_work *w) {
 
     switch (g) {
     case G_TAP:
-        /* Tap toggles the screen: eyes -> keyboard (wake), keyboard -> eyes
-         * (sleep). Decide from the state latched at touch-down (tap_was_eyes) to
-         * dodge the activity-reset race. Page nav is swipe-only. */
+        /* Tap = WAKE only (show the keyboard/status). It never sleeps on tap, so
+         * there is no toggle to fight the activity system. Sleep is long-press or
+         * the idle timeout. Page nav is swipe-only. */
 #if IS_ENABLED(CONFIG_ASURADA_SCREENSAVER)
-        if (tap_was_eyes) {
-            asurada_screensaver_wake();
-        } else {
-            asurada_screensaver_force_sleep();
-        }
+        asurada_screensaver_wake();
 #endif
         break;
     case G_LONG_PRESS:
@@ -192,13 +187,6 @@ static void touch_cb(struct input_event *evt, void *user_data) {
 
     if (evt->value) {
         touching = true;
-#if IS_ENABLED(CONFIG_ASURADA_SCREENSAVER)
-        /* Latch the eyes/keyboard state NOW, at touch-down, before the touch's own
-         * ZMK activity reset asynchronously flips the screensaver off. That race
-         * made a tap on the eyes read as "keyboard showing" -> force_sleep -> the
-         * screen bounced straight back to the eyes. */
-        tap_was_eyes = asurada_screensaver_is_active();
-#endif
         cst816s_read_xy(&last_x, &last_y);   /* seed the start point */
         start_x = last_x;
         start_y = last_y;
@@ -208,12 +196,22 @@ static void touch_cb(struct input_event *evt, void *user_data) {
         touching = false;
         k_work_cancel_delayable(&touch_poll_work);
         int64_t dur = k_uptime_get() - press_time;
+        int16_t mdx = last_x - start_x, mdy = last_y - start_y;
+        int amdx = (mdx < 0) ? -mdx : mdx;
+        int amdy = (mdy < 0) ? -mdy : mdy;
 
-        /* Prefer the CST816S's own gesture engine (reg 0x01): it classifies a
-         * slide on-chip, which works even when the coordinate registers don't
-         * stream a drag (this panel latches the down coordinate). Fall back to
-         * the polled coordinate delta for tap / long-press. If a swipe direction
-         * comes out wrong on hardware, remap the four cases below. */
+        /* Long-press wins first: a held, roughly-stationary touch past the
+         * threshold sleeps the display. Check the duration directly so a bit of
+         * finger drift (which the chip may report as a slide) can't steal it. */
+        if (dur >= LONG_PRESS_MS && amdx < TAP_MAX_MOVE && amdy < TAP_MAX_MOVE) {
+            post_gesture(G_LONG_PRESS);
+            return;
+        }
+
+        /* Otherwise prefer the CST816S's own gesture engine (reg 0x01): it
+         * classifies a slide on-chip, which works even when the coordinate
+         * registers don't stream a drag (this panel latches the down coord).
+         * Fall back to the polled delta for a plain tap. */
         uint8_t gid = 0;
         (void)i2c_reg_read_byte_dt(&cst816s_i2c, CST816S_REG_GESTURE, &gid);
         switch (gid) {
@@ -222,7 +220,7 @@ static void touch_cb(struct input_event *evt, void *user_data) {
         case CST816S_GESTURE_LEFT:  post_gesture(G_SWIPE_LEFT);  break;
         case CST816S_GESTURE_RIGHT: post_gesture(G_SWIPE_RIGHT); break;
         default:
-            classify_and_post(last_x - start_x, last_y - start_y, dur);
+            classify_and_post(mdx, mdy, dur);
             break;
         }
     }
