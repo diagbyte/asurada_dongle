@@ -50,6 +50,7 @@ static lv_obj_t *eyes[EYE_COUNT];
 static lv_obj_t *saved_status_screen;
 static lv_timer_t *blink_timer;
 static lv_timer_t *peek_timer;
+static lv_timer_t *sleep_timer;
 static bool showing_eyes;
 
 /* Small self-contained PRNG so we don't depend on the entropy generator. */
@@ -138,6 +139,32 @@ static void build_eyes_screen(void) {
 
 /* --- display-work-queue context below --- */
 
+/* Deep idle: after CONFIG_ASURADA_DISPLAY_OFF_MINUTES on the eyes with no
+ * activity, kill the backlight and freeze the glances to save power. A tap or
+ * any key (activity -> exit_eyes) brings it back; the SoC stays up. */
+static void sleep_expire(lv_timer_t *t) {
+    ARG_UNUSED(t);
+    if (sleep_timer) {
+        lv_timer_pause(sleep_timer);
+    }
+    asurada_brightness_dim(0);              /* backlight off */
+    if (blink_timer) {
+        lv_timer_pause(blink_timer);        /* stop glances -> idle CPU */
+    }
+}
+
+static void sleep_timer_arm(void) {
+#if CONFIG_ASURADA_DISPLAY_OFF_MINUTES > 0
+    uint32_t ms = (uint32_t)CONFIG_ASURADA_DISPLAY_OFF_MINUTES * 60000u;
+    if (!sleep_timer) {
+        sleep_timer = lv_timer_create(sleep_expire, ms, NULL);
+    }
+    lv_timer_set_period(sleep_timer, ms);
+    lv_timer_reset(sleep_timer);
+    lv_timer_resume(sleep_timer);
+#endif
+}
+
 static void enter_eyes(void) {
     if (!eyes_screen) {
         build_eyes_screen();
@@ -153,9 +180,13 @@ static void enter_eyes(void) {
         }
     }
     asurada_brightness_dim(CONFIG_ASURADA_SCREENSAVER_BRIGHTNESS);
+    sleep_timer_arm();                        /* start the 10-min display-off countdown */
 }
 
 static void exit_eyes(void) {
+    if (sleep_timer) {
+        lv_timer_pause(sleep_timer);
+    }
     if (showing_eyes && saved_status_screen) {
         lv_scr_load(saved_status_screen);
         showing_eyes = false;

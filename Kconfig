@@ -74,6 +74,16 @@ config ASURADA_SCREENSAVER_BRIGHTNESS
     range 1 100
     depends on ASURADA_SCREENSAVER
 
+config ASURADA_DISPLAY_OFF_MINUTES
+    int "Minutes idle before the display sleeps (backlight off; 0 = never)"
+    default 10
+    range 0 240
+    depends on ASURADA_SCREENSAVER
+    help
+      After this many minutes on the idle eyes screen with no activity, turn
+      the backlight off and freeze the eyes to save power. Any key or a tap
+      wakes it. The SoC stays up so USB / BLE relay keeps working.
+
 config ASURADA_TRACKBALL_LOG
     bool "Log forwarded trackball REL events (Phase-1 bring-up)"
     default n
