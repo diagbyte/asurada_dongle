@@ -18,7 +18,7 @@ LOG_MODULE_REGISTER(asurada_touch, LOG_LEVEL_WRN);
 /*
  * CST816S touch gestures for the Asurada dongle.
  *
- *   tap            -> peek at the status screen (wake from the screensaver)
+ *   tap            -> toggle the screen: sleep when awake, wake when asleep
  *   long press     -> show the four-eyes screensaver now
  *   swipe up/down  -> brighter / dimmer backlight
  *   swipe L/R      -> navigate carousel (keyboard ⟷ trackball pages)
@@ -62,14 +62,14 @@ static void gesture_work_handler(struct k_work *w) {
 
     switch (g) {
     case G_TAP:
+        /* Tap toggles the screen: sleep when awake, wake when asleep. Page
+         * navigation is swipe-only now (tap no longer advances pages). */
 #if IS_ENABLED(CONFIG_ASURADA_SCREENSAVER)
         if (asurada_screensaver_is_active()) {
             asurada_screensaver_wake();
-            break;
+        } else {
+            asurada_screensaver_force_sleep();
         }
-#endif
-#if IS_ENABLED(CONFIG_ASURADA_STATUS_SCREEN_ASURADA)
-        asurada_screens_page_next();
 #endif
         break;
     case G_LONG_PRESS:
