@@ -5,6 +5,7 @@
 #include <zmk/display.h>
 #include <zmk/activity.h>
 #include <zmk/events/activity_state_changed.h>
+#include <zmk/events/position_state_changed.h>
 #include <zmk/event_manager.h>
 
 #include <zephyr/logging/log.h>
@@ -243,9 +244,11 @@ static int activity_listener(const zmk_event_t *eh) {
         return ZMK_EV_EVENT_BUBBLE;
     }
 
-    if (ev->state == ZMK_ACTIVITY_ACTIVE) {
-        k_work_submit_to_queue(zmk_display_work_q(), &exit_work);
-    } else {
+    /* Only auto-SHOW the eyes when going idle. Do NOT auto-wake to the keyboard on
+     * ACTIVE: a touch (tap/swipe) is ZMK "activity" (pointing input), so waking on
+     * ACTIVE made every touch flip the display and fight the tap toggle
+     * ("터치시 왔다갔다"). Waking is explicit instead -- a real keypress or a tap. */
+    if (ev->state != ZMK_ACTIVITY_ACTIVE) {
         k_work_submit_to_queue(zmk_display_work_q(), &enter_work);
     }
     return ZMK_EV_EVENT_BUBBLE;
@@ -253,6 +256,19 @@ static int activity_listener(const zmk_event_t *eh) {
 
 ZMK_LISTENER(asurada_screensaver, activity_listener);
 ZMK_SUBSCRIPTION(asurada_screensaver, zmk_activity_state_changed);
+
+/* A real keypress (incl. forwarded trackball buttons) wakes the status screen;
+ * touch and trackball MOTION deliberately do not, so they can't flip the eyes. */
+static int keypress_listener(const zmk_event_t *eh) {
+    const struct zmk_position_state_changed *ev = as_zmk_position_state_changed(eh);
+    if (ev != NULL && ev->state) { /* key down only */
+        k_work_submit_to_queue(zmk_display_work_q(), &exit_work);
+    }
+    return ZMK_EV_EVENT_BUBBLE;
+}
+
+ZMK_LISTENER(asurada_screensaver_kp, keypress_listener);
+ZMK_SUBSCRIPTION(asurada_screensaver_kp, zmk_position_state_changed);
 
 static int screensaver_init(void) {
     rng_state ^= (uint32_t)k_uptime_get();
