@@ -12,16 +12,33 @@ static atomic_t acc_x = ATOMIC_INIT(0);
 static atomic_t acc_y = ATOMIC_INIT(0);
 static atomic_t moved = ATOMIC_INIT(0);
 
+/* In SCROLL mode the dongle input-listener rewrites the trackball's REL_X/Y into
+ * REL_HWHEEL/WHEEL (scaled 1/10 by zip_xy_scaler 1 10), so the ball would freeze
+ * while scrolling. Fold the wheel deltas back into the rotation accumulators,
+ * x10 to undo that scaler, so the ball keeps rolling. Handling both X/Y and the
+ * wheel is order-independent: whichever form reaches this global callback spins
+ * the ball. (SNIPE keeps REL_X/Y, just 1/5-scaled, so it already rolls.) */
+#define SCROLL_BALL_GAIN 10
+
 static void tb_cb(struct input_event *evt, void *user_data) {
     ARG_UNUSED(user_data);
     if (evt->type != INPUT_EV_REL) {
         return;
     }
-    if (evt->code == INPUT_REL_X) {
+    switch (evt->code) {
+    case INPUT_REL_X:
         atomic_add(&acc_x, evt->value);
-    } else if (evt->code == INPUT_REL_Y) {
+        break;
+    case INPUT_REL_Y:
         atomic_add(&acc_y, evt->value);
-    } else {
+        break;
+    case INPUT_REL_HWHEEL:
+        atomic_add(&acc_x, evt->value * SCROLL_BALL_GAIN);
+        break;
+    case INPUT_REL_WHEEL:
+        atomic_add(&acc_y, evt->value * SCROLL_BALL_GAIN);
+        break;
+    default:
         return;
     }
     atomic_set(&moved, 1);

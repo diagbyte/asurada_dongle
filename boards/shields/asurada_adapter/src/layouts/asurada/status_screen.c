@@ -41,6 +41,48 @@ static void on_page_active(int page, bool active) {
 #endif
 }
 
+/* --- Boot splash: a full-screen ASURADA card shown once when the display first
+ * powers on, then fades out to reveal the status screen underneath. --- */
+static void splash_opa_cb(void *var, int32_t v) {
+    lv_obj_set_style_opa((lv_obj_t *)var, (lv_opa_t)v, LV_PART_MAIN);
+}
+static void splash_done_cb(lv_anim_t *a) {
+    lv_obj_del((lv_obj_t *)a->var);
+}
+static void show_boot_splash(lv_obj_t *screen) {
+    lv_obj_t *ov = lv_obj_create(screen);
+    lv_obj_remove_style_all(ov);
+    lv_obj_set_size(ov, LV_PCT(100), LV_PCT(100));
+    lv_obj_center(ov);
+    lv_obj_clear_flag(ov, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_color(ov, lv_color_hex(0x000000), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(ov, LV_OPA_COVER, LV_PART_MAIN);
+
+    lv_obj_t *title = lv_label_create(ov);
+    lv_obj_set_style_text_font(title, &PPF_NarrowThin_64, LV_PART_MAIN);
+    lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    lv_label_set_text(title, "ASURADA");
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, -6);
+
+    lv_obj_t *sub = lv_label_create(ov);
+    lv_obj_set_style_text_font(sub, &FG_Medium_20, LV_PART_MAIN);
+    lv_obj_set_style_text_color(sub, lv_color_hex(0x35E0FF), LV_PART_MAIN);
+    lv_obj_set_style_text_letter_space(sub, 6, LV_PART_MAIN);
+    lv_label_set_text(sub, "CYBER FORMULA");
+    lv_obj_align(sub, LV_ALIGN_CENTER, 0, 44);
+
+    /* Hold, then fade the whole card (bg + text) out and delete it. */
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, ov);
+    lv_anim_set_values(&a, LV_OPA_COVER, LV_OPA_TRANSP);
+    lv_anim_set_time(&a, 500);
+    lv_anim_set_delay(&a, 1600);
+    lv_anim_set_exec_cb(&a, splash_opa_cb);
+    lv_anim_set_ready_cb(&a, splash_done_cb);
+    lv_anim_start(&a);
+}
+
 lv_obj_t *zmk_display_status_screen() {
     lv_obj_t *screen = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(screen, lv_color_hex(0x000000), LV_PART_MAIN);
@@ -100,5 +142,8 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_align(zmk_widget_asurada_page_dots_obj(&page_dots_widget), LV_ALIGN_BOTTOM_MID, 0, -8);
 
     asurada_screens_set_activate_cb(on_page_active);
+
+    /* Overlay the boot splash last so it sits on top of every page + the dots. */
+    show_boot_splash(screen);
     return screen;
 }
