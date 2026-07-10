@@ -59,17 +59,21 @@ static void show_boot_splash(lv_obj_t *screen) {
     lv_obj_set_style_bg_opa(ov, LV_OPA_COVER, LV_PART_MAIN);
 
     lv_obj_t *title = lv_label_create(ov);
-    lv_obj_set_style_text_font(title, &PPF_NarrowThin_64, LV_PART_MAIN);
+    /* DINishExpanded_Light_36 -- the DIN gauge face used for layer names; clean
+     * and narrow enough that "ASURADA" fits the 240px round face without clipping
+     * (PPF_NarrowThin_64 at 64px was too wide and looked off). */
+    lv_obj_set_style_text_font(title, &DINishExpanded_Light_36, LV_PART_MAIN);
     lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    lv_obj_set_style_text_letter_space(title, 2, LV_PART_MAIN);
     lv_label_set_text(title, "ASURADA");
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, -6);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, -10);
 
     lv_obj_t *sub = lv_label_create(ov);
     lv_obj_set_style_text_font(sub, &FG_Medium_20, LV_PART_MAIN);
     lv_obj_set_style_text_color(sub, lv_color_hex(0x35E0FF), LV_PART_MAIN);
-    lv_obj_set_style_text_letter_space(sub, 6, LV_PART_MAIN);
+    lv_obj_set_style_text_letter_space(sub, 2, LV_PART_MAIN);
     lv_label_set_text(sub, "CYBER FORMULA");
-    lv_obj_align(sub, LV_ALIGN_CENTER, 0, 44);
+    lv_obj_align(sub, LV_ALIGN_CENTER, 0, 28);
 
     /* Hold, then fade the whole card (bg + text) out and delete it. */
     lv_anim_t a;
