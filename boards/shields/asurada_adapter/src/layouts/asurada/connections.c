@@ -9,6 +9,7 @@
 
 #include <fonts.h>
 #include "display_colors.h"
+#include "asurada_battery.h"
 
 /*
  * Connections page: a title plus one row per split peripheral (up to
@@ -89,7 +90,7 @@ static void set_battery_level(uint8_t source, uint8_t level) {
     if (source >= PERIPHERAL_COUNT || source >= CONN_N_ROWS) {
         return;
     }
-    row_battery[source] = level;
+    row_battery[source] = asurada_battery_display_pct(level);
     update_row_display(source);
 }
 
