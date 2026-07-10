@@ -51,6 +51,11 @@ static lv_obj_t *saved_status_screen;
 static lv_timer_t *blink_timer;
 static lv_timer_t *sleep_timer;
 static bool showing_eyes;
+/* Set when the user taps to hold the status screen visible; while true the
+ * activity listener will NOT auto-show the eyes on idle. Cleared by a tap-to-
+ * sleep or long-press. This makes tap a real on/off toggle instead of the
+ * activity state (idle) immediately pulling the eyes back up. */
+static bool manual_status;
 
 /* Small self-contained PRNG so we don't depend on the entropy generator. */
 static uint32_t rng_state = 0x1234abcdu;
@@ -222,11 +227,13 @@ void asurada_screensaver_wake(void) {
      * screen flashed the keyboard and returned to the eyes.) The activity
      * listener still re-shows the eyes when the keyboard next goes idle; on this
      * USB-powered dongle (ZMK_SLEEP=n) the state stays IDLE, so a tap holds the
-     * status screen until the user taps again (or types and then idles). */
+     * status screen until the user taps again (or long-press sleeps). */
+    manual_status = true;
     k_work_submit_to_queue(zmk_display_work_q(), &exit_work);
 }
 
 void asurada_screensaver_force_sleep(void) {
+    manual_status = false;
     k_work_submit_to_queue(zmk_display_work_q(), &enter_work);
 }
 
@@ -244,7 +251,9 @@ static int activity_listener(const zmk_event_t *eh) {
 
     if (ev->state == ZMK_ACTIVITY_ACTIVE) {
         k_work_submit_to_queue(zmk_display_work_q(), &exit_work);
-    } else {
+    } else if (!manual_status) {
+        /* Auto-show the eyes on idle only if the user hasn't tapped to hold the
+         * status screen on. */
         k_work_submit_to_queue(zmk_display_work_q(), &enter_work);
     }
     return ZMK_EV_EVENT_BUBBLE;
