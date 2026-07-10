@@ -178,9 +178,14 @@ static void enter_eyes(void) {
         } else {
             lv_timer_resume(blink_timer);
         }
+        /* Keep the user's SET brightness on the eyes -- do NOT dim on entry; the
+         * eyes should show at whatever the up/down-swipe brightness is (dark stays
+         * dark, bright stays bright). Guarded by !showing_eyes so a later
+         * IDLE->SLEEP re-entry can't re-light the panel after the deep display-off
+         * (sleep_expire -> dim(0)) below. */
+        asurada_brightness_restore();
     }
-    asurada_brightness_dim(CONFIG_ASURADA_SCREENSAVER_BRIGHTNESS);
-    sleep_timer_arm();                        /* start the 10-min display-off countdown */
+    sleep_timer_arm();                        /* start the display-off countdown */
 }
 
 static void exit_eyes(void) {
