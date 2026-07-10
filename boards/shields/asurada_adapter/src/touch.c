@@ -35,7 +35,8 @@ LOG_MODULE_REGISTER(asurada_touch, LOG_LEVEL_WRN);
 #define SWIPE_THRESHOLD CONFIG_ASURADA_TOUCH_SWIPE_THRESHOLD
 #define BRIGHTNESS_STEP CONFIG_ASURADA_BRIGHTNESS_STEP
 #define TAP_MAX_MOVE 20   /* px: movement below this is a tap, not a swipe */
-#define LONG_PRESS_MS 600
+#define LONG_PRESS_MS 800 /* held this long = long-press; > SWIPE_MAX_MS so a real
+                           * swipe always releases first and can't be mistaken */
 #define SWIPE_MAX_MS 700  /* a swipe must complete within this time */
 
 enum gesture {
@@ -55,6 +56,7 @@ static int16_t last_x, last_y;
 static int16_t start_x, start_y;
 static int64_t press_time;
 static bool touching;
+static bool long_press_fired;   /* long-press already posted mid-hold this touch */
 
 static void gesture_work_handler(struct k_work *w) {
     ARG_UNUSED(w);
@@ -173,6 +175,15 @@ static void touch_poll_handler(struct k_work *w) {
         last_x = x;
         last_y = y;
     }
+    /* Fire the long-press MID-HOLD rather than trusting the touch-up event: with
+     * the change-IRQ config a stationary hold streams no interrupts, so the
+     * release can arrive late or with a short duration. LONG_PRESS_MS > SWIPE_MAX_MS
+     * so a real swipe has already released; the panel latches the coordinate so a
+     * movement test isn't reliable -- duration alone gates it. */
+    if (!long_press_fired && (k_uptime_get() - press_time) >= LONG_PRESS_MS) {
+        long_press_fired = true;
+        post_gesture(G_LONG_PRESS);
+    }
     k_work_schedule(&touch_poll_work, K_MSEC(TOUCH_POLL_MS));
 }
 
@@ -187,6 +198,7 @@ static void touch_cb(struct input_event *evt, void *user_data) {
 
     if (evt->value) {
         touching = true;
+        long_press_fired = false;
         cst816s_read_xy(&last_x, &last_y);   /* seed the start point */
         start_x = last_x;
         start_y = last_y;
@@ -195,6 +207,9 @@ static void touch_cb(struct input_event *evt, void *user_data) {
     } else if (touching) {
         touching = false;
         k_work_cancel_delayable(&touch_poll_work);
+        if (long_press_fired) {
+            return;   /* long-press already posted mid-hold */
+        }
         int64_t dur = k_uptime_get() - press_time;
         int16_t mdx = last_x - start_x, mdy = last_y - start_y;
         int amdx = (mdx < 0) ? -mdx : mdx;

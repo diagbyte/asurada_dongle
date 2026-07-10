@@ -4,6 +4,9 @@
 #include <zephyr/logging/log.h>
 
 #include "asurada_trackball.h"
+#if IS_ENABLED(CONFIG_ASURADA_SCREENSAVER)
+#include "asurada_screensaver.h"
+#endif
 
 LOG_MODULE_REGISTER(asurada_tb, LOG_LEVEL_INF);
 
@@ -42,6 +45,15 @@ static void tb_cb(struct input_event *evt, void *user_data) {
         return;
     }
     atomic_set(&moved, 1);
+#if IS_ENABLED(CONFIG_ASURADA_SCREENSAVER)
+    /* Trackball MOTION wakes the display. This is a REL-event path, distinct from
+     * the CST816S touch (ABS/BTN_TOUCH), so it wakes on trackball use only -- a
+     * touch still won't flip the eyes. Fires just on the transition (once awake,
+     * is_active() is false). */
+    if (asurada_screensaver_is_active()) {
+        asurada_screensaver_wake();
+    }
+#endif
 #if IS_ENABLED(CONFIG_ASURADA_TRACKBALL_LOG)
     LOG_INF("trackball REL code=%u val=%d", (unsigned)evt->code, evt->value);
 #endif
