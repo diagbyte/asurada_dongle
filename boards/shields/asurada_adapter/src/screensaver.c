@@ -49,7 +49,6 @@ static lv_obj_t *eyes_screen;
 static lv_obj_t *eyes[EYE_COUNT];
 static lv_obj_t *saved_status_screen;
 static lv_timer_t *blink_timer;
-static lv_timer_t *peek_timer;
 static lv_timer_t *sleep_timer;
 static bool showing_eyes;
 
@@ -202,49 +201,29 @@ static void exit_eyes(void) {
     asurada_brightness_restore();
 }
 
-static void peek_expire(lv_timer_t *t) {
-    ARG_UNUSED(t);
-    lv_timer_pause(peek_timer);
-    if (zmk_activity_get_state() != ZMK_ACTIVITY_ACTIVE) {
-        enter_eyes();
-    }
-}
-
 static struct k_work enter_work;
 static struct k_work exit_work;
-static struct k_work peek_work;
 
 static void enter_work_handler(struct k_work *w) {
     ARG_UNUSED(w);
-    if (peek_timer) {
-        lv_timer_pause(peek_timer);
-    }
     enter_eyes();
 }
 
 static void exit_work_handler(struct k_work *w) {
     ARG_UNUSED(w);
-    if (peek_timer) {
-        lv_timer_pause(peek_timer);
-    }
     exit_eyes();
-}
-
-static void peek_work_handler(struct k_work *w) {
-    ARG_UNUSED(w);
-    exit_eyes();
-    if (!peek_timer) {
-        peek_timer = lv_timer_create(peek_expire, 6000, NULL);
-    }
-    lv_timer_set_period(peek_timer, 6000);
-    lv_timer_reset(peek_timer);
-    lv_timer_resume(peek_timer);
 }
 
 /* --- public API (any thread) --- */
 
 void asurada_screensaver_wake(void) {
-    k_work_submit_to_queue(zmk_display_work_q(), &peek_work);
+    /* Persistent wake: show the status screen and STAY there. (The old behavior
+     * did a 6 s "peek" then bounced back to the eyes, so a tap on the standby
+     * screen flashed the keyboard and returned to the eyes.) The activity
+     * listener still re-shows the eyes when the keyboard next goes idle; on this
+     * USB-powered dongle (ZMK_SLEEP=n) the state stays IDLE, so a tap holds the
+     * status screen until the user taps again (or types and then idles). */
+    k_work_submit_to_queue(zmk_display_work_q(), &exit_work);
 }
 
 void asurada_screensaver_force_sleep(void) {
@@ -278,7 +257,6 @@ static int screensaver_init(void) {
     rng_state ^= (uint32_t)k_uptime_get();
     k_work_init(&enter_work, enter_work_handler);
     k_work_init(&exit_work, exit_work_handler);
-    k_work_init(&peek_work, peek_work_handler);
     return 0;
 }
 

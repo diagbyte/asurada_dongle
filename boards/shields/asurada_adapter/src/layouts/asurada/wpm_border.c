@@ -51,13 +51,6 @@ static const float smoothing_factor_down = 0.05f;
 static struct k_work_delayable wpm_boot_settle_work;
 static bool wpm_boot_settled;
 
-/* 10-minute rolling peak WPM: one max-bucket per minute, rotated on a 60 s LVGL
- * timer; the shown peak is the max across all buckets (a ~10-min sliding max). */
-#define PEAK_BUCKETS 10
-static uint8_t peak_bkt[PEAK_BUCKETS];
-static uint8_t peak_cur;
-static lv_timer_t *peak_rotate_timer;
-
 struct wpm_border_state {
     uint8_t wpm;
 };
@@ -123,8 +116,16 @@ static void wpm_border_render(void) {
         lv_arc_set_value(widget->arc, value);
         lv_obj_set_style_arc_color(widget->arc, fill, LV_PART_INDICATOR);
 
-        char buf[6];
-        snprintf(buf, sizeof(buf), "%d", (int)(displayed_wpm + 0.5f));
+        /* One-decimal readout, e.g. "15.3wpm". Format the fraction by hand so we
+         * don't depend on %f floating-point printf support. */
+        int whole = (int)displayed_wpm;
+        int frac = (int)((displayed_wpm - (float)whole) * 10.0f + 0.5f);
+        if (frac >= 10) {
+            whole++;
+            frac = 0;
+        }
+        char buf[12];
+        snprintf(buf, sizeof(buf), "%d.%dwpm", whole, frac);
         lv_label_set_text(widget->wpm_num, buf);
     }
 }
@@ -152,42 +153,9 @@ static void wpm_boot_settle_handler(struct k_work *work) {
     wpm_boot_settled = true;
 }
 
-static uint8_t peak_value(void) {
-    uint8_t m = 0;
-    for (int i = 0; i < PEAK_BUCKETS; i++) {
-        if (peak_bkt[i] > m) {
-            m = peak_bkt[i];
-        }
-    }
-    return m;
-}
-
-static void render_peak(void) {
-    char buf[16];
-    snprintf(buf, sizeof(buf), "WPM  PEAK %d", peak_value());
-    struct zmk_widget_wpm_border *widget;
-    SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        lv_label_set_text(widget->peak_lbl, buf);
-    }
-}
-
-/* Advance the 1-min bucket ring every 60 s; the oldest minute drops off, so the
- * peak reflects only the last ~10 minutes. */
-static void peak_rotate_cb(lv_timer_t *t) {
-    ARG_UNUSED(t);
-    peak_cur = (peak_cur + 1) % PEAK_BUCKETS;
-    peak_bkt[peak_cur] = 0;
-    render_peak();
-}
-
 static void wpm_border_update_cb(struct wpm_border_state state) {
     /* Suppress the power-on WPM transient until the boot settle elapses. */
-    uint8_t w = wpm_boot_settled ? state.wpm : 0;
-    target_wpm = (float)w;
-    if (w > peak_bkt[peak_cur]) {          /* feed the current 1-min peak bucket */
-        peak_bkt[peak_cur] = w;
-        render_peak();
-    }
+    target_wpm = wpm_boot_settled ? (float)state.wpm : 0.0f;
     k_work_schedule(&wpm_smooth_work, K_NO_WAIT);
 }
 
@@ -252,20 +220,12 @@ int zmk_widget_wpm_border_init(struct zmk_widget_wpm_border *widget, lv_obj_t *p
     lv_obj_clear_flag(widget->ticks, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(widget->ticks, ticks_draw_cb, LV_EVENT_DRAW_MAIN, NULL);
 
-    /* Numeric WPM readout near the top of the dial, with a small "WPM" unit. */
+    /* Combined WPM readout near the top of the dial, e.g. "15.3wpm". */
     widget->wpm_num = lv_label_create(widget->obj);
-    lv_label_set_text(widget->wpm_num, "0");
+    lv_label_set_text(widget->wpm_num, "0.0wpm");
     lv_obj_set_style_text_font(widget->wpm_num, &FG_Medium_21, LV_PART_MAIN);
     lv_obj_set_style_text_color(widget->wpm_num, lv_color_hex(DISPLAY_COLOR_TACH_NUM), LV_PART_MAIN);
-    lv_obj_align(widget->wpm_num, LV_ALIGN_TOP_MID, 0, 28);
-
-    /* Sub-line under the number: the WPM unit + the last-10-minute peak. */
-    widget->peak_lbl = lv_label_create(widget->obj);
-    lv_label_set_text(widget->peak_lbl, "WPM  PEAK 0");
-    lv_obj_set_style_text_font(widget->peak_lbl, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(widget->peak_lbl, lv_color_hex(DISPLAY_COLOR_TACH_TICK), LV_PART_MAIN);
-    lv_obj_set_style_text_letter_space(widget->peak_lbl, 1, LV_PART_MAIN);
-    lv_obj_align(widget->peak_lbl, LV_ALIGN_TOP_MID, 0, 52);
+    lv_obj_align(widget->wpm_num, LV_ALIGN_TOP_MID, 0, 40);
 
     sys_slist_append(&widgets, &widget->node);
     widget_wpm_border_init();
@@ -275,11 +235,6 @@ int zmk_widget_wpm_border_init(struct zmk_widget_wpm_border *widget, lv_obj_t *p
     if (!wpm_boot_settled) {
         k_work_init_delayable(&wpm_boot_settle_work, wpm_boot_settle_handler);
         k_work_schedule(&wpm_boot_settle_work, K_MSEC(6000));
-    }
-
-    /* One shared 60 s ticker rotates the peak buckets (10-min sliding window). */
-    if (!peak_rotate_timer) {
-        peak_rotate_timer = lv_timer_create(peak_rotate_cb, 60000, NULL);
     }
 
     return 0;
