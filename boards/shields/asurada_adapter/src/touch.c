@@ -147,6 +147,7 @@ static void classify_and_post(int16_t dx, int16_t dy, int64_t dur) {
 #define CST816S_GESTURE_DOWN   0x02
 #define CST816S_GESTURE_LEFT   0x03
 #define CST816S_GESTURE_RIGHT  0x04
+#define CST816S_GESTURE_LONG_PRESS 0x0c   /* CST816S native long-press */
 #define TOUCH_POLL_MS 22
 
 static const struct i2c_dt_spec cst816s_i2c = I2C_DT_SPEC_GET(DT_NODELABEL(cst816s));
@@ -176,13 +177,18 @@ static void touch_poll_handler(struct k_work *w) {
         last_y = y;
     }
     /* Fire the long-press MID-HOLD rather than trusting the touch-up event: with
-     * the change-IRQ config a stationary hold streams no interrupts, so the
-     * release can arrive late or with a short duration. LONG_PRESS_MS > SWIPE_MAX_MS
-     * so a real swipe has already released; the panel latches the coordinate so a
-     * movement test isn't reliable -- duration alone gates it. */
-    if (!long_press_fired && (k_uptime_get() - press_time) >= LONG_PRESS_MS) {
-        long_press_fired = true;
-        post_gesture(G_LONG_PRESS);
+     * the change-IRQ config a stationary hold streams no interrupts and the panel
+     * may even drop the finger, so the release timing is unreliable. Prefer the
+     * chip's own long-press gesture (0x0C); fall back to our own duration timer
+     * (LONG_PRESS_MS > SWIPE_MAX_MS so a real swipe releases first). */
+    if (!long_press_fired) {
+        uint8_t gid = 0;
+        (void)i2c_reg_read_byte_dt(&cst816s_i2c, CST816S_REG_GESTURE, &gid);
+        if (gid == CST816S_GESTURE_LONG_PRESS ||
+            (k_uptime_get() - press_time) >= LONG_PRESS_MS) {
+            long_press_fired = true;
+            post_gesture(G_LONG_PRESS);
+        }
     }
     k_work_schedule(&touch_poll_work, K_MSEC(TOUCH_POLL_MS));
 }
@@ -234,6 +240,7 @@ static void touch_cb(struct input_event *evt, void *user_data) {
         case CST816S_GESTURE_DOWN:  post_gesture(G_SWIPE_DOWN);  break;
         case CST816S_GESTURE_LEFT:  post_gesture(G_SWIPE_LEFT);  break;
         case CST816S_GESTURE_RIGHT: post_gesture(G_SWIPE_RIGHT); break;
+        case CST816S_GESTURE_LONG_PRESS: post_gesture(G_LONG_PRESS); break;
         default:
             classify_and_post(mdx, mdy, dur);
             break;
