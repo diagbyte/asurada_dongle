@@ -43,6 +43,14 @@ static float target_wpm = 0.0f;
 static const float smoothing_factor_up = 0.3f;
 static const float smoothing_factor_down = 0.05f;
 
+/* Boot settle: a few key-up events at power-on / peripheral connection make ZMK's
+ * WPM (12 * key_ups / seconds) spike briefly; the slow tach release then drains
+ * it for ~10 s AFTER the boot splash clears, which reads as "WPM jumped to 15 on
+ * its own". Hold the gauge at 0 for the first few seconds so that transient never
+ * shows. Real typing that early is rare. */
+static struct k_work_delayable wpm_boot_settle_work;
+static bool wpm_boot_settled;
+
 struct wpm_border_state {
     uint8_t wpm;
 };
@@ -132,8 +140,14 @@ static void wpm_smooth_work_handler(struct k_work *work) {
     }
 }
 
+static void wpm_boot_settle_handler(struct k_work *work) {
+    ARG_UNUSED(work);
+    wpm_boot_settled = true;
+}
+
 static void wpm_border_update_cb(struct wpm_border_state state) {
-    target_wpm = (float)state.wpm;
+    /* Suppress the power-on WPM transient until the boot settle elapses. */
+    target_wpm = wpm_boot_settled ? (float)state.wpm : 0.0f;
     k_work_schedule(&wpm_smooth_work, K_NO_WAIT);
 }
 
@@ -215,6 +229,11 @@ int zmk_widget_wpm_border_init(struct zmk_widget_wpm_border *widget, lv_obj_t *p
     widget_wpm_border_init();
 
     k_work_init_delayable(&wpm_smooth_work, wpm_smooth_work_handler);
+
+    if (!wpm_boot_settled) {
+        k_work_init_delayable(&wpm_boot_settle_work, wpm_boot_settle_handler);
+        k_work_schedule(&wpm_boot_settle_work, K_MSEC(6000));
+    }
 
     return 0;
 }

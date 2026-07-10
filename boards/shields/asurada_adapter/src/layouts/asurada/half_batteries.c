@@ -9,6 +9,7 @@
 
 #include <fonts.h>
 #include "display_colors.h"
+#include "asurada_battery.h"
 
 /*
  * Keyboard-page battery: one slim cell per keyboard half (split slots 0 and 1),
@@ -66,7 +67,7 @@ static void render(void) {
 
 static void set_level(uint8_t source, uint8_t level) {
     if (source >= ASURADA_HALF_COUNT) return;
-    half_level[source] = level;
+    half_level[source] = asurada_battery_display_pct(level);
     render();
 }
 

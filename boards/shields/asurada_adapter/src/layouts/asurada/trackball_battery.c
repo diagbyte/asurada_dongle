@@ -9,6 +9,7 @@
 
 #include <fonts.h>
 #include "display_colors.h"
+#include "asurada_battery.h"
 
 /* Battery of the trackball peripheral (CONFIG_ASURADA_TRACKBALL_SLOT), shown on
  * the trackball page as a small battery glyph + percentage. Mirrors
@@ -62,7 +63,7 @@ static void tb_battery_render(void) {
 
 static void set_battery_level(uint8_t source, uint8_t level) {
     if (source != TB_SLOT) return;
-    tb_level = level;
+    tb_level = asurada_battery_display_pct(level);
     tb_battery_render();
 }
 
