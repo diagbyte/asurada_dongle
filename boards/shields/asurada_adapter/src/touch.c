@@ -55,6 +55,7 @@ static int16_t last_x, last_y;
 static int16_t start_x, start_y;
 static int64_t press_time;
 static bool touching;
+static bool tap_was_eyes;   /* screensaver state latched at touch-down (race-free tap) */
 
 static void gesture_work_handler(struct k_work *w) {
     ARG_UNUSED(w);
@@ -62,10 +63,11 @@ static void gesture_work_handler(struct k_work *w) {
 
     switch (g) {
     case G_TAP:
-        /* Tap toggles the screen: sleep when awake, wake when asleep. Page
-         * navigation is swipe-only now (tap no longer advances pages). */
+        /* Tap toggles the screen: eyes -> keyboard (wake), keyboard -> eyes
+         * (sleep). Decide from the state latched at touch-down (tap_was_eyes) to
+         * dodge the activity-reset race. Page nav is swipe-only. */
 #if IS_ENABLED(CONFIG_ASURADA_SCREENSAVER)
-        if (asurada_screensaver_is_active()) {
+        if (tap_was_eyes) {
             asurada_screensaver_wake();
         } else {
             asurada_screensaver_force_sleep();
@@ -190,6 +192,13 @@ static void touch_cb(struct input_event *evt, void *user_data) {
 
     if (evt->value) {
         touching = true;
+#if IS_ENABLED(CONFIG_ASURADA_SCREENSAVER)
+        /* Latch the eyes/keyboard state NOW, at touch-down, before the touch's own
+         * ZMK activity reset asynchronously flips the screensaver off. That race
+         * made a tap on the eyes read as "keyboard showing" -> force_sleep -> the
+         * screen bounced straight back to the eyes. */
+        tap_was_eyes = asurada_screensaver_is_active();
+#endif
         cst816s_read_xy(&last_x, &last_y);   /* seed the start point */
         start_x = last_x;
         start_y = last_y;
