@@ -212,6 +212,19 @@ static void touch_cb(struct input_event *evt, void *user_data) {
         start_y = last_y;
         press_time = k_uptime_get();
         k_work_schedule(&touch_poll_work, K_MSEC(TOUCH_POLL_MS));
+#if IS_ENABLED(CONFIG_ASURADA_SCREENSAVER)
+        /* Wake on touch-DOWN when the standby eyes are up, so the swipe/tap that
+         * follows operates on the VISIBLE carousel instead of navigating invisibly
+         * behind the eyes. This is the "touch did nothing" fix: once a keyboard is
+         * connected, its idle gaps drop the display to the eyes (a trackball-only
+         * setup rarely idles), and a swipe then just moved the hidden carousel.
+         * Safe from the old "왔다갔다" bounce: tap is wake-only now and the activity
+         * listener no longer re-shows the eyes on ACTIVE, so nothing flips back.
+         * Long-press still sleeps from its own handler (brief wake, then eyes). */
+        if (asurada_screensaver_is_active()) {
+            asurada_screensaver_wake();
+        }
+#endif
     } else if (touching) {
         touching = false;
         k_work_cancel_delayable(&touch_poll_work);
