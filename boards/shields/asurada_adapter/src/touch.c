@@ -166,104 +166,95 @@ static bool cst816s_read_xy(int16_t *x, int16_t *y) {
     return true;
 }
 
+/*
+ * Free-running touch state machine (~22 ms), always polling.
+ *
+ * We deliberately do NOT drive touch from the CST816S driver's INPUT_BTN_TOUCH
+ * edge anymore. On this hardware the driver's IRQ stops delivering events once
+ * the system idles and the display drops to the standby eyes (a tap then produced
+ * NO event at all -- "touch completely dead after the keyboard was connected",
+ * because the keyboard's typing gaps are what let the display idle). A timer-
+ * driven poll wakes the CPU on its own and reads the chip's finger-count + XY
+ * registers directly, so a touch is detected regardless of the IRQ or CPU idle
+ * state, and the steady I2C traffic keeps the chip out of its low-power standby.
+ *
+ * Down/hold/up are derived from the finger-count register; the gesture register
+ * (0x01) is still read exactly ONCE, at up -- never mid-slide (that clears the
+ * chip's gesture state and breaks both swipe and the native long-press).
+ */
 static void touch_poll_handler(struct k_work *w) {
     ARG_UNUSED(w);
-    if (!touching) {
-        return;
-    }
+
     int16_t x, y;
-    if (cst816s_read_xy(&x, &y)) {
-        last_x = x;
-        last_y = y;
-    }
-    /* Fire the long-press MID-HOLD on our own duration timer, rather than trusting
-     * the touch-up event: with the change-IRQ config a stationary hold streams no
-     * interrupts and the panel may even drop the finger, so release timing is
-     * unreliable.
-     *
-     * We deliberately do NOT poll the gesture register (0x01) here. Reading it
-     * repeatedly mid-slide clears the CST816S's on-chip gesture state, which broke
-     * BOTH gestures: the single touch-up read then came back empty, so every drag
-     * fell through to the latched-coordinate delta (~0 on this panel) and looked
-     * like a tap, and the native 0x0C long-press never latched either. The gesture
-     * register is now read exactly once, at touch-up. LONG_PRESS_MS > SWIPE_MAX_MS
-     * so a real swipe always releases before this timer fires. */
-    if (!long_press_fired && (k_uptime_get() - press_time) >= LONG_PRESS_MS) {
-        long_press_fired = true;
-        post_gesture(G_LONG_PRESS);
-    }
-    k_work_schedule(&touch_poll_work, K_MSEC(TOUCH_POLL_MS));
-}
+    bool finger = cst816s_read_xy(&x, &y);
 
-static void touch_cb(struct input_event *evt, void *user_data) {
-    ARG_UNUSED(user_data);
-
-    /* Only the touch up/down edge matters here; coordinates come from
-     * cst816s_read_xy() (raw registers), not the driver's INPUT_ABS events. */
-    if (evt->type != INPUT_EV_KEY || evt->code != INPUT_BTN_TOUCH) {
-        return;
-    }
-
-    if (evt->value) {
-        touching = true;
-        long_press_fired = false;
-        cst816s_read_xy(&last_x, &last_y);   /* seed the start point */
-        start_x = last_x;
-        start_y = last_y;
-        press_time = k_uptime_get();
-        k_work_schedule(&touch_poll_work, K_MSEC(TOUCH_POLL_MS));
+    if (finger) {
+        if (!touching) {
+            /* ---- touch DOWN ---- */
+            touching = true;
+            long_press_fired = false;
+            start_x = last_x = x;
+            start_y = last_y = y;
+            press_time = k_uptime_get();
 #if IS_ENABLED(CONFIG_ASURADA_SCREENSAVER)
-        /* Wake on touch-DOWN when the standby eyes are up, so the swipe/tap that
-         * follows operates on the VISIBLE carousel instead of navigating invisibly
-         * behind the eyes. This is the "touch did nothing" fix: once a keyboard is
-         * connected, its idle gaps drop the display to the eyes (a trackball-only
-         * setup rarely idles), and a swipe then just moved the hidden carousel.
-         * Safe from the old "왔다갔다" bounce: tap is wake-only now and the activity
-         * listener no longer re-shows the eyes on ACTIVE, so nothing flips back.
-         * Long-press still sleeps from its own handler (brief wake, then eyes). */
-        if (asurada_screensaver_is_active()) {
-            asurada_screensaver_wake();
-        }
+            /* Wake on touch-down when the eyes are up, so the following swipe/tap
+             * acts on the VISIBLE carousel (also restores the deep display-off).
+             * No bounce: tap is wake-only and the activity listener no longer
+             * re-shows the eyes on ACTIVE; long-press still sleeps below. */
+            if (asurada_screensaver_is_active()) {
+                asurada_screensaver_wake();
+            }
 #endif
+        } else {
+            /* ---- held / dragging ---- */
+            last_x = x;
+            last_y = y;
+            /* Long-press fires MID-HOLD off the duration timer (release timing is
+             * unreliable). No gesture-register read here. */
+            if (!long_press_fired && (k_uptime_get() - press_time) >= LONG_PRESS_MS) {
+                long_press_fired = true;
+                post_gesture(G_LONG_PRESS);
+            }
+        }
     } else if (touching) {
+        /* ---- touch UP ---- */
         touching = false;
-        k_work_cancel_delayable(&touch_poll_work);
-        if (long_press_fired) {
-            return;   /* long-press already posted mid-hold */
-        }
-        int64_t dur = k_uptime_get() - press_time;
-        int16_t mdx = last_x - start_x, mdy = last_y - start_y;
-        int amdx = (mdx < 0) ? -mdx : mdx;
-        int amdy = (mdy < 0) ? -mdy : mdy;
+        if (!long_press_fired) {
+            int64_t dur = k_uptime_get() - press_time;
+            int16_t mdx = last_x - start_x, mdy = last_y - start_y;
+            int amdx = (mdx < 0) ? -mdx : mdx;
+            int amdy = (mdy < 0) ? -mdy : mdy;
 
-        /* Long-press wins first: a held, roughly-stationary touch past the
-         * threshold sleeps the display. Check the duration directly so a bit of
-         * finger drift (which the chip may report as a slide) can't steal it. */
-        if (dur >= LONG_PRESS_MS && amdx < TAP_MAX_MOVE && amdy < TAP_MAX_MOVE) {
-            post_gesture(G_LONG_PRESS);
-            return;
-        }
-
-        /* Otherwise prefer the CST816S's own gesture engine (reg 0x01): it
-         * classifies a slide on-chip, which works even when the coordinate
-         * registers don't stream a drag (this panel latches the down coord).
-         * Fall back to the polled delta for a plain tap. */
-        uint8_t gid = 0;
-        (void)i2c_reg_read_byte_dt(&cst816s_i2c, CST816S_REG_GESTURE, &gid);
-        switch (gid) {
-        case CST816S_GESTURE_UP:    post_gesture(G_SWIPE_UP);    break;
-        case CST816S_GESTURE_DOWN:  post_gesture(G_SWIPE_DOWN);  break;
-        case CST816S_GESTURE_LEFT:  post_gesture(G_SWIPE_LEFT);  break;
-        case CST816S_GESTURE_RIGHT: post_gesture(G_SWIPE_RIGHT); break;
-        case CST816S_GESTURE_LONG_PRESS: post_gesture(G_LONG_PRESS); break;
-        default:
-            classify_and_post(mdx, mdy, dur);
-            break;
+            /* Long-press wins first: a held, roughly-stationary touch past the
+             * threshold sleeps the display (fallback; usually already fired). */
+            if (dur >= LONG_PRESS_MS && amdx < TAP_MAX_MOVE && amdy < TAP_MAX_MOVE) {
+                post_gesture(G_LONG_PRESS);
+            } else {
+                /* Prefer the CST816S's own gesture engine (reg 0x01, read ONCE):
+                 * it classifies a slide on-chip even when the coordinate registers
+                 * latch the down position. Fall back to the polled delta for a tap. */
+                uint8_t gid = 0;
+                (void)i2c_reg_read_byte_dt(&cst816s_i2c, CST816S_REG_GESTURE, &gid);
+                switch (gid) {
+                case CST816S_GESTURE_UP:    post_gesture(G_SWIPE_UP);    break;
+                case CST816S_GESTURE_DOWN:  post_gesture(G_SWIPE_DOWN);  break;
+                case CST816S_GESTURE_LEFT:  post_gesture(G_SWIPE_LEFT);  break;
+                case CST816S_GESTURE_RIGHT: post_gesture(G_SWIPE_RIGHT); break;
+                case CST816S_GESTURE_LONG_PRESS: post_gesture(G_LONG_PRESS); break;
+                default:
+                    classify_and_post(mdx, mdy, dur);
+                    break;
+                }
+            }
         }
     }
+
+    k_work_schedule(&touch_poll_work, K_MSEC(TOUCH_POLL_MS));   /* free-running */
 }
 
-INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_NODELABEL(cst816s)), touch_cb, NULL);
+/* (The old INPUT_BTN_TOUCH callback that used to start/stop the poll was removed:
+ * touch_poll_handler above now runs free and owns the whole down/hold/up state
+ * machine, so touch no longer depends on the driver's IRQ firing.) */
 
 /*
  * CST816S drag/swipe fix. By default the chip's IrqCtl (reg 0xFA) fires the INT
@@ -297,15 +288,21 @@ static void enable_change_irq(struct k_work *w) {
     if (e1 || e2 || e3) {
         LOG_WRN("CST816S reg write failed (%d/%d/%d); swipe may stay tap-only", e1, e2, e3);
     }
+    /* Re-assert every 2 s. DisAutoSleep in particular must keep sticking: if the
+     * chip ever resets or slips into standby it stops answering, which is what made
+     * touch die after the display idled. Idempotent writes; negligible on a
+     * USB-powered dongle. */
+    k_work_schedule(&irq_ctl_work, K_SECONDS(2));
 }
 static K_WORK_DELAYABLE_DEFINE(irq_ctl_work, enable_change_irq);
 
 static int touch_init(void) {
     k_work_init(&gesture_work, gesture_work_handler);
     k_work_init_delayable(&touch_poll_work, touch_poll_handler);
-    /* Configure change-IRQ ~600 ms after boot, once the CST816S driver's own
-     * init has run and the chip is awake. */
+    /* Configure the chip ~600 ms after boot (once the driver's own init ran), then
+     * start the free-running touch poll just after so it reads a configured chip. */
     k_work_schedule(&irq_ctl_work, K_MSEC(600));
+    k_work_schedule(&touch_poll_work, K_MSEC(700));
     return 0;
 }
 
