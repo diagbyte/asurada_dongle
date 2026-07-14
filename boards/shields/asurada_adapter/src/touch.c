@@ -176,19 +176,21 @@ static void touch_poll_handler(struct k_work *w) {
         last_x = x;
         last_y = y;
     }
-    /* Fire the long-press MID-HOLD rather than trusting the touch-up event: with
-     * the change-IRQ config a stationary hold streams no interrupts and the panel
-     * may even drop the finger, so the release timing is unreliable. Prefer the
-     * chip's own long-press gesture (0x0C); fall back to our own duration timer
-     * (LONG_PRESS_MS > SWIPE_MAX_MS so a real swipe releases first). */
-    if (!long_press_fired) {
-        uint8_t gid = 0;
-        (void)i2c_reg_read_byte_dt(&cst816s_i2c, CST816S_REG_GESTURE, &gid);
-        if (gid == CST816S_GESTURE_LONG_PRESS ||
-            (k_uptime_get() - press_time) >= LONG_PRESS_MS) {
-            long_press_fired = true;
-            post_gesture(G_LONG_PRESS);
-        }
+    /* Fire the long-press MID-HOLD on our own duration timer, rather than trusting
+     * the touch-up event: with the change-IRQ config a stationary hold streams no
+     * interrupts and the panel may even drop the finger, so release timing is
+     * unreliable.
+     *
+     * We deliberately do NOT poll the gesture register (0x01) here. Reading it
+     * repeatedly mid-slide clears the CST816S's on-chip gesture state, which broke
+     * BOTH gestures: the single touch-up read then came back empty, so every drag
+     * fell through to the latched-coordinate delta (~0 on this panel) and looked
+     * like a tap, and the native 0x0C long-press never latched either. The gesture
+     * register is now read exactly once, at touch-up. LONG_PRESS_MS > SWIPE_MAX_MS
+     * so a real swipe always releases before this timer fires. */
+    if (!long_press_fired && (k_uptime_get() - press_time) >= LONG_PRESS_MS) {
+        long_press_fired = true;
+        post_gesture(G_LONG_PRESS);
     }
     k_work_schedule(&touch_poll_work, K_MSEC(TOUCH_POLL_MS));
 }
