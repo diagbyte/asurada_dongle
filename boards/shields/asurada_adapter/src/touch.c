@@ -275,7 +275,6 @@ static void touch_poll_handler(struct k_work *w) {
 #define CST816S_MOTION_EN_CONT     0x06   /* EnConUD | EnConLR: on-chip slide detect */
 
 static void enable_change_irq(struct k_work *w) {
-    ARG_UNUSED(w);
     if (!device_is_ready(cst816s_i2c.bus)) {
         LOG_WRN("CST816S I2C bus not ready; swipe stays tap-only");
         return;
@@ -291,8 +290,9 @@ static void enable_change_irq(struct k_work *w) {
     /* Re-assert every 2 s. DisAutoSleep in particular must keep sticking: if the
      * chip ever resets or slips into standby it stops answering, which is what made
      * touch die after the display idled. Idempotent writes; negligible on a
-     * USB-powered dongle. */
-    k_work_schedule(&irq_ctl_work, K_SECONDS(2));
+     * USB-powered dongle. Reschedule via the passed work handle (the delayable is
+     * defined below, so it isn't in scope by name here). */
+    k_work_schedule(k_work_delayable_from_work(w), K_SECONDS(2));
 }
 static K_WORK_DELAYABLE_DEFINE(irq_ctl_work, enable_change_irq);
 
