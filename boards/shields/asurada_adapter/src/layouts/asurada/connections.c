@@ -9,7 +9,6 @@
 
 #include <fonts.h>
 #include "display_colors.h"
-#include "asurada_battery.h"
 
 /*
  * Connections page: a title plus one row per split peripheral (up to
@@ -32,8 +31,24 @@ static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 #define CONN_DOT_CONNECTED    0x35C46B
 #define CONN_DOT_DISCONNECTED 0xF0564D
 
+/* Battery icon per row (replaces the old NN% label): green/amber/red by level,
+ * grey when disconnected. Matches the keyboard/trackball battery colours. */
+#define BATT_HIGH    0x35C46B   /* >50% green  */
+#define BATT_MID     0xF5A623   /* 20-50% amber */
+#define BATT_LOW     0xF0564D   /* <20% red    */
+#define BATT_OFF     0x505050   /* disconnected */
+#define BATT_BODY_W  28
+#define BATT_BODY_H  14
+#define BATT_FILL_MAX 22        /* px, inner fill at 100% (= body interior width) */
+
+static uint32_t level_color(uint8_t level) {
+    if (level > 50) return BATT_HIGH;
+    if (level > 20) return BATT_MID;
+    return BATT_LOW;
+}
+
 /* Rendered rows = the smaller of the actual peripheral count and our label
- * capacity; the fixed dot[]/pct[]/row_battery[]/row_connected[] arrays stay
+ * capacity; the fixed dot[]/body[]/fill[]/row_battery[]/row_connected[] arrays stay
  * sized ASURADA_CONN_ROWS so out-of-range indices are always memory-safe. */
 #define CONN_N_ROWS MIN(PERIPHERAL_COUNT, ASURADA_CONN_ROWS)
 
@@ -63,25 +78,25 @@ static void update_row_display(uint8_t row) {
     bool connected = row_connected[row];
     uint8_t level = row_battery[row];
 
+    uint32_t c = connected ? level_color(level) : BATT_OFF;
+    int fw = connected ? (int)level * BATT_FILL_MAX / 100 : 1;
+    if (fw < 1) fw = 1;
+
     struct zmk_widget_asurada_connections *widget;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) {
-        lv_obj_t *dot = widget->dot[row];
-        lv_obj_t *pct = widget->pct[row];
-
-        if (dot) {
+        if (widget->dot[row]) {
             lv_obj_set_style_bg_color(
-                dot, lv_color_hex(connected ? CONN_DOT_CONNECTED : CONN_DOT_DISCONNECTED),
+                widget->dot[row], lv_color_hex(connected ? CONN_DOT_CONNECTED : CONN_DOT_DISCONNECTED),
                 LV_PART_MAIN);
         }
-
-        if (pct) {
-            char text[5];
-            if (connected) {
-                snprintf(text, sizeof(text), "%d%%", level);
-            } else {
-                snprintf(text, sizeof(text), "--");
-            }
-            lv_label_set_text(pct, text);
+        /* battery icon instead of a % label: fill width tracks level, fill + body
+         * border tinted green/amber/red (grey when disconnected). */
+        if (widget->fill[row]) {
+            lv_obj_set_width(widget->fill[row], fw);
+            lv_obj_set_style_bg_color(widget->fill[row], lv_color_hex(c), LV_PART_MAIN);
+        }
+        if (widget->body[row]) {
+            lv_obj_set_style_border_color(widget->body[row], lv_color_hex(c), LV_PART_MAIN);
         }
     }
 }
@@ -90,7 +105,7 @@ static void set_battery_level(uint8_t source, uint8_t level) {
     if (source >= PERIPHERAL_COUNT || source >= CONN_N_ROWS) {
         return;
     }
-    row_battery[source] = asurada_battery_display_pct(level);
+    row_battery[source] = level;   /* raw SoC; no cosmetic rescale */
     update_row_display(source);
 }
 
@@ -194,11 +209,43 @@ void zmk_widget_asurada_connections_init(struct zmk_widget_asurada_connections *
         lv_obj_set_style_text_color(name, lv_color_hex(DISPLAY_COLOR_LAYER_TEXT), LV_PART_MAIN);
         lv_obj_set_flex_grow(name, 1);
 
-        lv_obj_t *pct = lv_label_create(row);
-        w->pct[i] = pct;
-        lv_label_set_text(pct, "--");
-        lv_obj_set_style_text_font(pct, &FG_Medium_20, LV_PART_MAIN);
-        lv_obj_set_style_text_color(pct, lv_color_hex(DISPLAY_COLOR_LAYER_TEXT), LV_PART_MAIN);
+        /* battery icon (green/amber/red by level) in place of the old NN% label:
+         * a tight [ body [fill] ][ nub ] group. */
+        lv_obj_t *batt = lv_obj_create(row);
+        lv_obj_remove_style_all(batt);
+        lv_obj_set_size(batt, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+        lv_obj_set_flex_flow(batt, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(batt, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_style_pad_column(batt, 1, LV_PART_MAIN);
+        lv_obj_clear_flag(batt, LV_OBJ_FLAG_SCROLLABLE);
+
+        lv_obj_t *body = lv_obj_create(batt);
+        lv_obj_remove_style_all(body);
+        lv_obj_set_size(body, BATT_BODY_W, BATT_BODY_H);
+        lv_obj_set_style_radius(body, 2, LV_PART_MAIN);
+        lv_obj_set_style_border_width(body, 2, LV_PART_MAIN);
+        lv_obj_set_style_border_color(body, lv_color_hex(BATT_OFF), LV_PART_MAIN);
+        lv_obj_set_style_border_opa(body, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(body, LV_OPA_TRANSP, LV_PART_MAIN);
+        lv_obj_set_style_pad_all(body, 1, LV_PART_MAIN);
+        lv_obj_clear_flag(body, LV_OBJ_FLAG_SCROLLABLE);
+        w->body[i] = body;
+
+        lv_obj_t *fill = lv_obj_create(body);
+        lv_obj_remove_style_all(fill);
+        lv_obj_set_size(fill, 1, BATT_BODY_H - 6);   /* interior height */
+        lv_obj_align(fill, LV_ALIGN_LEFT_MID, 0, 0);
+        lv_obj_set_style_radius(fill, 1, LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(fill, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(fill, lv_color_hex(BATT_OFF), LV_PART_MAIN);
+        w->fill[i] = fill;
+
+        lv_obj_t *nub = lv_obj_create(batt);
+        lv_obj_remove_style_all(nub);
+        lv_obj_set_size(nub, 3, 7);
+        lv_obj_set_style_radius(nub, 1, LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(nub, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(nub, lv_color_hex(0x9AB0B8), LV_PART_MAIN);
     }
 
     widget_asurada_connections_battery_init();

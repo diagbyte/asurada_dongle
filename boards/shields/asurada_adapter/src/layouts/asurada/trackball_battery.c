@@ -9,7 +9,6 @@
 
 #include <fonts.h>
 #include "display_colors.h"
-#include "asurada_battery.h"
 
 /* Battery of the trackball peripheral (CONFIG_ASURADA_TRACKBALL_SLOT), shown on
  * the trackball page as a small battery glyph + percentage. Mirrors
@@ -43,27 +42,20 @@ static uint32_t level_color(uint8_t level) {
 static void tb_battery_render(void) {
     struct zmk_widget_asurada_tb_battery *w;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, w, node) {
-        if (tb_connected) {
-            int fw = (int)tb_level * FILL_MAX_W / 100;
-            if (fw < 1) fw = 1;
-            lv_obj_set_width(w->fill, fw);
-            lv_obj_set_style_bg_color(w->fill, lv_color_hex(level_color(tb_level)), LV_PART_MAIN);
-            lv_obj_set_style_text_color(w->pct, lv_color_hex(level_color(tb_level)), LV_PART_MAIN);
-            char t[5];
-            snprintf(t, sizeof(t), "%d%%", tb_level);
-            lv_label_set_text(w->pct, t);
-        } else {
-            lv_obj_set_width(w->fill, 1);
-            lv_obj_set_style_bg_color(w->fill, lv_color_hex(BATT_OFF), LV_PART_MAIN);
-            lv_obj_set_style_text_color(w->pct, lv_color_hex(BATT_OFF), LV_PART_MAIN);
-            lv_label_set_text(w->pct, "--");
-        }
+        /* Icon only (no %): fill width tracks level, fill + body border tinted
+         * green/amber/red, grey when disconnected. */
+        uint32_t c = tb_connected ? level_color(tb_level) : BATT_OFF;
+        int fw = tb_connected ? (int)tb_level * FILL_MAX_W / 100 : 1;
+        if (fw < 1) fw = 1;
+        lv_obj_set_width(w->fill, fw);
+        lv_obj_set_style_bg_color(w->fill, lv_color_hex(c), LV_PART_MAIN);
+        lv_obj_set_style_border_color(w->body, lv_color_hex(c), LV_PART_MAIN);
     }
 }
 
 static void set_battery_level(uint8_t source, uint8_t level) {
     if (source != TB_SLOT) return;
-    tb_level = asurada_battery_display_pct(level);
+    tb_level = level;   /* raw SoC; no cosmetic rescale */
     tb_battery_render();
 }
 
@@ -131,6 +123,7 @@ void zmk_widget_asurada_tb_battery_init(struct zmk_widget_asurada_tb_battery *w,
     lv_obj_set_style_bg_opa(body, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_pad_all(body, 1, LV_PART_MAIN);
     lv_obj_clear_flag(body, LV_OBJ_FLAG_SCROLLABLE);
+    w->body = body;
 
     /* inner fill bar, left-aligned, width ∝ level */
     w->fill = lv_obj_create(body);
@@ -149,12 +142,7 @@ void zmk_widget_asurada_tb_battery_init(struct zmk_widget_asurada_tb_battery *w,
     lv_obj_set_style_radius(nub, 1, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(nub, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_bg_color(nub, lv_color_hex(0x9AB0B8), LV_PART_MAIN);
-
-    /* percentage label */
-    w->pct = lv_label_create(w->obj);
-    lv_label_set_text(w->pct, "--");
-    lv_obj_set_style_text_font(w->pct, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(w->pct, lv_color_hex(BATT_OFF), LV_PART_MAIN);
+    /* no percentage label: the battery icon (fill + border colour) is the gauge */
 
     sys_slist_append(&widgets, &w->node);
     widget_asurada_tb_battery_battery_init();

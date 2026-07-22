@@ -9,7 +9,6 @@
 
 #include <fonts.h>
 #include "display_colors.h"
-#include "asurada_battery.h"
 
 /*
  * Keyboard-page battery: one slim cell per keyboard half (split slots 0 and 1),
@@ -46,28 +45,22 @@ static void render(void) {
     struct zmk_widget_asurada_half_batteries *w;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, w, node) {
         for (int i = 0; i < ASURADA_HALF_COUNT; i++) {
-            if (half_conn[i]) {
-                int fw = (int)half_level[i] * FILL_MAX_W / 100;
-                if (fw < 1) fw = 1;
-                lv_obj_set_width(w->fill[i], fw);
-                lv_obj_set_style_bg_color(w->fill[i], lv_color_hex(level_color(half_level[i])), LV_PART_MAIN);
-                lv_obj_set_style_text_color(w->pct[i], lv_color_hex(level_color(half_level[i])), LV_PART_MAIN);
-                char t[5];
-                snprintf(t, sizeof(t), "%d%%", half_level[i]);
-                lv_label_set_text(w->pct[i], t);
-            } else {
-                lv_obj_set_width(w->fill[i], 1);
-                lv_obj_set_style_bg_color(w->fill[i], lv_color_hex(BATT_OFF), LV_PART_MAIN);
-                lv_obj_set_style_text_color(w->pct[i], lv_color_hex(BATT_OFF), LV_PART_MAIN);
-                lv_label_set_text(w->pct[i], "--");
-            }
+            /* No percentage: the battery is shown as a green/amber/red icon whose
+             * fill tracks the level. Colour both the fill and the body border so a
+             * low pack reads clearly as a red battery, disconnected as grey. */
+            uint32_t c = half_conn[i] ? level_color(half_level[i]) : BATT_OFF;
+            int fw = half_conn[i] ? (int)half_level[i] * FILL_MAX_W / 100 : 1;
+            if (fw < 1) fw = 1;
+            lv_obj_set_width(w->fill[i], fw);
+            lv_obj_set_style_bg_color(w->fill[i], lv_color_hex(c), LV_PART_MAIN);
+            lv_obj_set_style_border_color(w->body[i], lv_color_hex(c), LV_PART_MAIN);
         }
     }
 }
 
 static void set_level(uint8_t source, uint8_t level) {
     if (source >= ASURADA_HALF_COUNT) return;
-    half_level[source] = asurada_battery_display_pct(level);
+    half_level[source] = level;   /* raw SoC; no cosmetic rescale */
     render();
 }
 
@@ -130,6 +123,7 @@ static void make_cell(struct zmk_widget_asurada_half_batteries *w, int i) {
     lv_obj_set_style_bg_opa(body, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_pad_all(body, 1, LV_PART_MAIN);
     lv_obj_clear_flag(body, LV_OBJ_FLAG_SCROLLABLE);
+    w->body[i] = body;
 
     w->fill[i] = lv_obj_create(body);
     lv_obj_remove_style_all(w->fill[i]);
@@ -146,12 +140,7 @@ static void make_cell(struct zmk_widget_asurada_half_batteries *w, int i) {
     lv_obj_set_style_radius(nub, 1, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(nub, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_bg_color(nub, lv_color_hex(0x9AB0B8), LV_PART_MAIN);
-
-    /* percentage */
-    w->pct[i] = lv_label_create(cell);
-    lv_label_set_text(w->pct[i], "--");
-    lv_obj_set_style_text_font(w->pct[i], &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(w->pct[i], lv_color_hex(BATT_OFF), LV_PART_MAIN);
+    /* no percentage label: the battery icon (fill + border colour) is the gauge */
 }
 
 void zmk_widget_asurada_half_batteries_init(struct zmk_widget_asurada_half_batteries *w, lv_obj_t *parent) {
