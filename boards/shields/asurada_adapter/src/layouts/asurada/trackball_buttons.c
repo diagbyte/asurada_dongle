@@ -19,13 +19,13 @@
 
 #define TB_BTN_FIRST_POS 38
 
-#define SEG_IDLE   0x243036   /* dark slate band = un-pressed button */
-#define SEG_ACTIVE 0x35E0FF   /* cyan band = pressed */
-#define TXT_IDLE   0xAEC4CC   /* light text on the dark band */
+#define SEG_IDLE   0x3A4E58   /* visible slate band = un-pressed button */
+#define SEG_ACTIVE 0x35E0FF   /* cyan band = pressed (lit) */
+#define TXT_IDLE   0xD5E4EA   /* light text on the slate band */
 #define TXT_ACTIVE 0x05222A   /* dark text on the cyan band */
 
-#define RING_W  26            /* arc band thickness, px */
-#define ARC_SZ  208           /* arc box -> ring radius ~91 (clears the 132px ball) */
+#define RING_W  40            /* arc band thickness, px (thick = button-like) */
+#define ARC_SZ  212           /* arc box -> ring radius ~86, band 66..106 (5px off the ball) */
 
 /* index 0..5 == position 38..43 */
 static const char *const btn_text[ASURADA_TB_BTN_COUNT] = {
@@ -42,14 +42,14 @@ static const struct { uint16_t start, end; } seg_ang[ASURADA_TB_BTN_COUNT] = {
     {122, 158},  /* Left   lower-left  */
     { 22,  58},  /* Sniper lower-right */
 };
-/* label centre offset (~radius 90 at each segment's mid-angle) */
+/* label centre offset (~radius 86 = band centre, at each segment's mid-angle) */
 static const struct { int16_t x, y; } btn_pos[ASURADA_TB_BTN_COUNT] = {
-    {-71, -55},  /* Back   217.5 deg */
-    {-27, -86},  /* Fwd    252.5 */
-    { 27, -86},  /* Wheel  287.5 */
-    { 71, -55},  /* Right  322.5 */
-    {-69,  58},  /* Left   140   */
-    { 69,  58},  /* Sniper 40    */
+    {-68, -52},  /* Back   217.5 deg */
+    {-26, -82},  /* Fwd    252.5 */
+    { 26, -82},  /* Wheel  287.5 */
+    { 68, -52},  /* Right  322.5 */
+    {-66,  55},  /* Left   140   */
+    { 66,  55},  /* Sniper 40    */
 };
 static bool btn_down[ASURADA_TB_BTN_COUNT];
 
@@ -62,10 +62,15 @@ static void render(void) {
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, w, node) {
         for (int i = 0; i < ASURADA_TB_BTN_COUNT; i++) {
             bool d = btn_down[i];
+            /* Pressed = the segment lights cyan, its label darkens AND pops one
+             * size larger -- a tactile button-press feel. */
             lv_obj_set_style_arc_color(w->arc[i], lv_color_hex(d ? SEG_ACTIVE : SEG_IDLE),
                                        LV_PART_MAIN);
             lv_obj_set_style_text_color(w->lbl[i], lv_color_hex(d ? TXT_ACTIVE : TXT_IDLE),
                                         LV_PART_MAIN);
+            lv_obj_set_style_text_font(w->lbl[i],
+                                       d ? &lv_font_montserrat_14 : &lv_font_montserrat_12,
+                                       LV_PART_MAIN);
         }
     }
 }
