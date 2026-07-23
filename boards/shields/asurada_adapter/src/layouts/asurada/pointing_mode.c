@@ -50,7 +50,7 @@ ZMK_SUBSCRIPTION(widget_asurada_pointing_mode, zmk_layer_state_changed);
 void zmk_widget_asurada_pointing_mode_init(struct zmk_widget_asurada_pointing_mode *widget, lv_obj_t *parent) {
     widget->obj = lv_label_create(parent);
     lv_obj_set_style_text_font(widget->obj, &lv_font_montserrat_20, LV_PART_MAIN);
-    lv_obj_set_style_text_color(widget->obj, lv_color_hex(0x35E0FF), LV_PART_MAIN);
+    lv_obj_set_style_text_color(widget->obj, lv_color_hex(0xFFB733), LV_PART_MAIN);
     lv_obj_set_style_text_letter_space(widget->obj, 2, LV_PART_MAIN);
     lv_label_set_text(widget->obj, "");
     /* Centred over the ball: the SCROLL/SNIPE mode is the focal readout when

@@ -20,9 +20,9 @@
 #define TB_BTN_FIRST_POS 38
 
 #define SEG_IDLE   0x3A4E58   /* visible slate band = un-pressed button */
-#define SEG_ACTIVE 0x35E0FF   /* cyan band = pressed (lit) */
+#define SEG_ACTIVE 0xFFB733   /* amber/gold band = pressed (lit) */
 #define TXT_IDLE   0xD5E4EA   /* light text on the slate band */
-#define TXT_ACTIVE 0x05222A   /* dark text on the cyan band */
+#define TXT_ACTIVE 0x2A1E02   /* dark text on the amber band */
 
 #define RING_W  40            /* arc band thickness, px (thick = button-like) */
 #define ARC_SZ  212           /* arc box -> ring radius ~86, band 66..106 (5px off the ball) */
@@ -62,15 +62,12 @@ static void render(void) {
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, w, node) {
         for (int i = 0; i < ASURADA_TB_BTN_COUNT; i++) {
             bool d = btn_down[i];
-            /* Pressed = the segment lights cyan, its label darkens AND pops one
-             * size larger -- a tactile button-press feel. */
+            /* Pressed = the segment lights amber and its label darkens for a
+             * button-pressed feel (text size stays constant). */
             lv_obj_set_style_arc_color(w->arc[i], lv_color_hex(d ? SEG_ACTIVE : SEG_IDLE),
                                        LV_PART_MAIN);
             lv_obj_set_style_text_color(w->lbl[i], lv_color_hex(d ? TXT_ACTIVE : TXT_IDLE),
                                         LV_PART_MAIN);
-            lv_obj_set_style_text_font(w->lbl[i],
-                                       d ? &lv_font_montserrat_14 : &lv_font_montserrat_12,
-                                       LV_PART_MAIN);
         }
     }
 }
