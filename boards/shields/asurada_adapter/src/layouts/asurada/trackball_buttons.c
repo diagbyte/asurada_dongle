@@ -8,21 +8,48 @@
 #include "display_colors.h"
 
 /*
- * Trackball button legend + live state. The six trackball buttons arrive at the
- * central as split key positions 38..43 (base-layer bindings):
- *   38 MB4   39 MB5   40 MCLK   41 RCLK   42 LCLK   43 SNIPE
- * Laid out to match the physical cluster (4 across the top, 2 at the bottom
- * corners); each label lights cyan while its button is held -- a live reference
- * AND state. RCLK/SNIPE also scroll when held long; the label shows the tap name.
+ * Trackball buttons drawn as pie/arc "buttons" ringing the ball, mirroring the
+ * AdeptBLE cluster: 4 across the top, 2 at the lower corners. Each button is an
+ * arc SEGMENT of a band around the ball with its label inside; pressing the
+ * physical button (forwarded as split key positions 38..43) lights that segment
+ * cyan and darkens its text -- a pressed-button effect.
+ *   38 MB4/Back  39 MB5/Fwd  40 MCLK/Wheel  41 RCLK/Right  42 LCLK/Left  43 SNIPE/Sniper
+ * (RCLK/SNIPE also scroll on long-hold; the label shows the tap action.)
  */
 
 #define TB_BTN_FIRST_POS 38
-#define BTN_IDLE   0x5A6A72   /* dim slate when released */
-#define BTN_ACTIVE 0x35E0FF   /* cyan when pressed       */
+
+#define SEG_IDLE   0x243036   /* dark slate band = un-pressed button */
+#define SEG_ACTIVE 0x35E0FF   /* cyan band = pressed */
+#define TXT_IDLE   0xAEC4CC   /* light text on the dark band */
+#define TXT_ACTIVE 0x05222A   /* dark text on the cyan band */
+
+#define RING_W  26            /* arc band thickness, px */
+#define ARC_SZ  208           /* arc box -> ring radius ~91 (clears the 132px ball) */
 
 /* index 0..5 == position 38..43 */
 static const char *const btn_text[ASURADA_TB_BTN_COUNT] = {
     "Back", "Fwd", "Wheel", "Right", "Left", "Sniper",
+};
+/* Arc segment angles (LVGL: 0=east, clockwise; 270=top). The top 4 span the upper
+ * arc with small gaps; the 2 bottom buttons sit at the lower corners, leaving the
+ * bottom-centre and sides open -- the AdeptBLE cluster shape. */
+static const struct { uint16_t start, end; } seg_ang[ASURADA_TB_BTN_COUNT] = {
+    {202, 233},  /* Back   upper-left  */
+    {237, 268},  /* Fwd    upper-left  */
+    {272, 303},  /* Wheel  upper-right */
+    {307, 338},  /* Right  upper-right */
+    {122, 158},  /* Left   lower-left  */
+    { 22,  58},  /* Sniper lower-right */
+};
+/* label centre offset (~radius 90 at each segment's mid-angle) */
+static const struct { int16_t x, y; } btn_pos[ASURADA_TB_BTN_COUNT] = {
+    {-71, -55},  /* Back   217.5 deg */
+    {-27, -86},  /* Fwd    252.5 */
+    { 27, -86},  /* Wheel  287.5 */
+    { 71, -55},  /* Right  322.5 */
+    {-69,  58},  /* Left   140   */
+    { 69,  58},  /* Sniper 40    */
 };
 static bool btn_down[ASURADA_TB_BTN_COUNT];
 
@@ -34,8 +61,11 @@ static void render(void) {
     struct zmk_widget_asurada_tb_buttons *w;
     SYS_SLIST_FOR_EACH_CONTAINER(&widgets, w, node) {
         for (int i = 0; i < ASURADA_TB_BTN_COUNT; i++) {
-            lv_obj_set_style_text_color(
-                w->lbl[i], lv_color_hex(btn_down[i] ? BTN_ACTIVE : BTN_IDLE), LV_PART_MAIN);
+            bool d = btn_down[i];
+            lv_obj_set_style_arc_color(w->arc[i], lv_color_hex(d ? SEG_ACTIVE : SEG_IDLE),
+                                       LV_PART_MAIN);
+            lv_obj_set_style_text_color(w->lbl[i], lv_color_hex(d ? TXT_ACTIVE : TXT_IDLE),
+                                        LV_PART_MAIN);
         }
     }
 }
@@ -68,37 +98,44 @@ ZMK_DISPLAY_WIDGET_LISTENER(wgt_tb_buttons, struct btn_state, tb_buttons_update_
                             tb_buttons_get_state);
 ZMK_SUBSCRIPTION(wgt_tb_buttons, zmk_position_state_changed);
 
-/* Offsets from the page centre for each button, arranged as a RING around the
- * ball that keeps the physical cluster's left/right + top/bottom sense (clock:
- * Back 10, Fwd 11, Wheel 1, Right 2 across the top; Left 8, Sniper 4 at the lower
- * corners). Radius ~88px clears the 132px ball and the round edge both -- so the
- * labels sit around the sphere, not over it. */
-static const struct { int16_t x, y; } btn_pos[ASURADA_TB_BTN_COUNT] = {
-    {-76, -44},  /* Back   (10 o'clock) */
-    {-44, -76},  /* Fwd    (11) */
-    { 44, -76},  /* Wheel  (1)  */
-    { 76, -44},  /* Right  (2)  */
-    {-76,  44},  /* Left   (8)  */
-    { 76,  44},  /* Sniper (4)  */
-};
+static lv_obj_t *make_arc(lv_obj_t *parent, uint16_t start, uint16_t end) {
+    lv_obj_t *a = lv_arc_create(parent);
+    lv_obj_clear_flag(a, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_size(a, ARC_SZ, ARC_SZ);
+    lv_obj_center(a);
+    lv_arc_set_rotation(a, 0);
+    lv_arc_set_bg_angles(a, start, end);
+    lv_obj_set_style_bg_opa(a, LV_OPA_TRANSP, LV_PART_MAIN);          /* no rect background */
+    lv_obj_set_style_arc_width(a, RING_W, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(a, lv_color_hex(SEG_IDLE), LV_PART_MAIN);
+    lv_obj_set_style_arc_rounded(a, false, LV_PART_MAIN);             /* flat ends = segment */
+    lv_obj_set_style_arc_opa(a, LV_OPA_TRANSP, LV_PART_INDICATOR);    /* no value arc */
+    lv_obj_set_style_bg_opa(a, LV_OPA_TRANSP, LV_PART_KNOB);          /* no knob */
+    lv_obj_set_style_pad_all(a, 0, LV_PART_KNOB);
+    return a;
+}
 
 static lv_obj_t *make_label(lv_obj_t *parent, const char *txt) {
     lv_obj_t *l = lv_label_create(parent);
     lv_label_set_text(l, txt);
     lv_obj_set_style_text_font(l, &lv_font_montserrat_12, LV_PART_MAIN);
-    lv_obj_set_style_text_color(l, lv_color_hex(BTN_IDLE), LV_PART_MAIN);
+    lv_obj_set_style_text_color(l, lv_color_hex(TXT_IDLE), LV_PART_MAIN);
     return l;
 }
 
 void zmk_widget_asurada_tb_buttons_init(struct zmk_widget_asurada_tb_buttons *w, lv_obj_t *parent) {
-    /* Full-page transparent layer; the six labels are placed absolutely in a ring
-     * around the ball (see btn_pos). */
+    /* Full-page transparent layer; the arc segments + labels are placed
+     * absolutely as a ring around the ball. */
     w->obj = lv_obj_create(parent);
     lv_obj_remove_style_all(w->obj);
     lv_obj_set_size(w->obj, 240, 240);
     lv_obj_center(w->obj);
     lv_obj_clear_flag(w->obj, LV_OBJ_FLAG_SCROLLABLE);
 
+    /* arcs first, then labels on top of them */
+    for (int i = 0; i < ASURADA_TB_BTN_COUNT; i++) {
+        w->arc[i] = make_arc(w->obj, seg_ang[i].start, seg_ang[i].end);
+    }
     for (int i = 0; i < ASURADA_TB_BTN_COUNT; i++) {
         w->lbl[i] = make_label(w->obj, btn_text[i]);
         lv_obj_align(w->lbl[i], LV_ALIGN_CENTER, btn_pos[i].x, btn_pos[i].y);

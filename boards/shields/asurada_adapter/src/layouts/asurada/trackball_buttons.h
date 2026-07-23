@@ -7,7 +7,8 @@
 struct zmk_widget_asurada_tb_buttons {
     sys_snode_t node;
     lv_obj_t *obj;
-    lv_obj_t *lbl[ASURADA_TB_BTN_COUNT];
+    lv_obj_t *arc[ASURADA_TB_BTN_COUNT];   /* pie/arc segment ("button") */
+    lv_obj_t *lbl[ASURADA_TB_BTN_COUNT];   /* label inside the segment */
 };
 
 void zmk_widget_asurada_tb_buttons_init(struct zmk_widget_asurada_tb_buttons *w, lv_obj_t *parent);
