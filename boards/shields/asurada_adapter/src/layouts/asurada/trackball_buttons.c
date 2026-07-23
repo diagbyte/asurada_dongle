@@ -68,50 +68,41 @@ ZMK_DISPLAY_WIDGET_LISTENER(wgt_tb_buttons, struct btn_state, tb_buttons_update_
                             tb_buttons_get_state);
 ZMK_SUBSCRIPTION(wgt_tb_buttons, zmk_position_state_changed);
 
+/* Offsets from the page centre for each button, arranged as a RING around the
+ * ball that keeps the physical cluster's left/right + top/bottom sense (clock:
+ * Back 10, Fwd 11, Wheel 1, Right 2 across the top; Left 8, Sniper 4 at the lower
+ * corners). Radius ~88px clears the 132px ball and the round edge both -- so the
+ * labels sit around the sphere, not over it. */
+static const struct { int16_t x, y; } btn_pos[ASURADA_TB_BTN_COUNT] = {
+    {-76, -44},  /* Back   (10 o'clock) */
+    {-44, -76},  /* Fwd    (11) */
+    { 44, -76},  /* Wheel  (1)  */
+    { 76, -44},  /* Right  (2)  */
+    {-76,  44},  /* Left   (8)  */
+    { 76,  44},  /* Sniper (4)  */
+};
+
 static lv_obj_t *make_label(lv_obj_t *parent, const char *txt) {
     lv_obj_t *l = lv_label_create(parent);
     lv_label_set_text(l, txt);
     lv_obj_set_style_text_font(l, &lv_font_montserrat_12, LV_PART_MAIN);
     lv_obj_set_style_text_color(l, lv_color_hex(BTN_IDLE), LV_PART_MAIN);
-    /* dark chip so the label stays legible over the rolling ball */
-    lv_obj_set_style_bg_color(l, lv_color_hex(0x0A0F12), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(l, LV_OPA_60, LV_PART_MAIN);
-    lv_obj_set_style_pad_left(l, 3, LV_PART_MAIN);
-    lv_obj_set_style_pad_right(l, 3, LV_PART_MAIN);
-    lv_obj_set_style_pad_top(l, 1, LV_PART_MAIN);
-    lv_obj_set_style_pad_bottom(l, 1, LV_PART_MAIN);
-    lv_obj_set_style_radius(l, 3, LV_PART_MAIN);
     return l;
 }
 
-static lv_obj_t *make_row(lv_obj_t *parent) {
-    lv_obj_t *r = lv_obj_create(parent);
-    lv_obj_remove_style_all(r);
-    lv_obj_set_size(r, 200, 18);
-    lv_obj_set_flex_flow(r, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(r, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_clear_flag(r, LV_OBJ_FLAG_SCROLLABLE);
-    return r;
-}
-
 void zmk_widget_asurada_tb_buttons_init(struct zmk_widget_asurada_tb_buttons *w, lv_obj_t *parent) {
+    /* Full-page transparent layer; the six labels are placed absolutely in a ring
+     * around the ball (see btn_pos). */
     w->obj = lv_obj_create(parent);
     lv_obj_remove_style_all(w->obj);
-    lv_obj_set_size(w->obj, 200, 40);
-    lv_obj_set_flex_flow(w->obj, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(w->obj, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(w->obj, 4, LV_PART_MAIN);
+    lv_obj_set_size(w->obj, 240, 240);
+    lv_obj_center(w->obj);
     lv_obj_clear_flag(w->obj, LV_OBJ_FLAG_SCROLLABLE);
 
-    lv_obj_t *top = make_row(w->obj);
-    w->lbl[0] = make_label(top, btn_text[0]);  /* Back  (MB4)  */
-    w->lbl[1] = make_label(top, btn_text[1]);  /* Fwd   (MB5)  */
-    w->lbl[2] = make_label(top, btn_text[2]);  /* Wheel (MCLK) */
-    w->lbl[3] = make_label(top, btn_text[3]);  /* Right (RCLK) */
-
-    lv_obj_t *bot = make_row(w->obj);
-    w->lbl[4] = make_label(bot, btn_text[4]);  /* Left   (LCLK)  */
-    w->lbl[5] = make_label(bot, btn_text[5]);  /* Sniper (SNIPE) */
+    for (int i = 0; i < ASURADA_TB_BTN_COUNT; i++) {
+        w->lbl[i] = make_label(w->obj, btn_text[i]);
+        lv_obj_align(w->lbl[i], LV_ALIGN_CENTER, btn_pos[i].x, btn_pos[i].y);
+    }
 
     sys_slist_append(&widgets, &w->node);
     wgt_tb_buttons_init();

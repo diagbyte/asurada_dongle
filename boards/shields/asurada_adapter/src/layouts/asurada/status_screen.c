@@ -124,10 +124,10 @@ lv_obj_t *zmk_display_status_screen() {
     zmk_widget_asurada_tb_battery_init(&tb_battery_widget, tb);
     lv_obj_align(zmk_widget_asurada_tb_battery_obj(&tb_battery_widget), LV_ALIGN_BOTTOM_MID, 0, -32);
 
-    /* Trackball button legend (Back/Fwd/Wheel/Right + Left/Sniper), lights up on
-     * press. Sits over the ball's lower half; pixel-tune the offset from a photo. */
+    /* Trackball button legend (Back/Fwd/Wheel/Right + Left/Sniper) arranged as a
+     * ring AROUND the ball, lighting up on press. Full-page layer, self-centred. */
     zmk_widget_asurada_tb_buttons_init(&tb_buttons_widget, tb);
-    lv_obj_align(zmk_widget_asurada_tb_buttons_obj(&tb_buttons_widget), LV_ALIGN_CENTER, 0, 40);
+    lv_obj_align(zmk_widget_asurada_tb_buttons_obj(&tb_buttons_widget), LV_ALIGN_CENTER, 0, 0);
 #endif
 
     /* Last page: connections (one row per split peripheral; labels via Kconfig). */
