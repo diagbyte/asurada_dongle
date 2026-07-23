@@ -10,6 +10,7 @@
 #if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)
 #include "ball.h"
 #include "trackball_battery.h"
+#include "trackball_buttons.h"
 #include "pointing_mode.h"
 #endif
 #include "connections.h"
@@ -25,6 +26,7 @@ static struct zmk_widget_asurada_page_dots page_dots_widget;
 #if IS_ENABLED(CONFIG_ASURADA_TRACKBALL)
 static struct zmk_widget_asurada_ball ball_widget;
 static struct zmk_widget_asurada_tb_battery tb_battery_widget;
+static struct zmk_widget_asurada_tb_buttons tb_buttons_widget;
 static struct zmk_widget_asurada_pointing_mode pointing_mode_widget;
 #endif
 static struct zmk_widget_asurada_connections connections_widget;
@@ -121,6 +123,11 @@ lv_obj_t *zmk_display_status_screen() {
 
     zmk_widget_asurada_tb_battery_init(&tb_battery_widget, tb);
     lv_obj_align(zmk_widget_asurada_tb_battery_obj(&tb_battery_widget), LV_ALIGN_BOTTOM_MID, 0, -32);
+
+    /* Trackball button legend (Back/Fwd/Wheel/Right + Left/Sniper), lights up on
+     * press. Sits over the ball's lower half; pixel-tune the offset from a photo. */
+    zmk_widget_asurada_tb_buttons_init(&tb_buttons_widget, tb);
+    lv_obj_align(zmk_widget_asurada_tb_buttons_obj(&tb_buttons_widget), LV_ALIGN_CENTER, 0, 40);
 #endif
 
     /* Last page: connections (one row per split peripheral; labels via Kconfig). */

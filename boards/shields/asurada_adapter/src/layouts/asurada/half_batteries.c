@@ -9,6 +9,7 @@
 
 #include <fonts.h>
 #include "display_colors.h"
+#include "batt_pulse.h"
 
 /*
  * Keyboard-page battery: one slim cell per keyboard half (split slots 0 and 1),
@@ -54,6 +55,8 @@ static void render(void) {
             lv_obj_set_width(w->fill[i], fw);
             lv_obj_set_style_bg_color(w->fill[i], lv_color_hex(c), LV_PART_MAIN);
             lv_obj_set_style_border_color(w->body[i], lv_color_hex(c), LV_PART_MAIN);
+            /* blink when critically low (red, <=20%) */
+            asurada_batt_pulse_set(w->body[i], half_conn[i] && half_level[i] <= 20);
         }
     }
 }

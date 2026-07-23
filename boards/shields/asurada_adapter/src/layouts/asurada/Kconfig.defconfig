@@ -15,8 +15,11 @@ config ZMK_WPM
 config ZMK_HID_INDICATORS
     default y
 
-# Small built-in font for the compact L/R battery labels (repo fonts stop at 20px).
+# Small built-in fonts for compact labels (L/R battery, trackball button legend).
 config LV_FONT_MONTSERRAT_14
+    default y
+
+config LV_FONT_MONTSERRAT_12
     default y
 
 config LV_Z_MEM_POOL_SIZE

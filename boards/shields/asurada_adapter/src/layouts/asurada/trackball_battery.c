@@ -9,6 +9,7 @@
 
 #include <fonts.h>
 #include "display_colors.h"
+#include "batt_pulse.h"
 
 /* Battery of the trackball peripheral (CONFIG_ASURADA_TRACKBALL_SLOT), shown on
  * the trackball page as a small battery glyph + percentage. Mirrors
@@ -50,6 +51,8 @@ static void tb_battery_render(void) {
         lv_obj_set_width(w->fill, fw);
         lv_obj_set_style_bg_color(w->fill, lv_color_hex(c), LV_PART_MAIN);
         lv_obj_set_style_border_color(w->body, lv_color_hex(c), LV_PART_MAIN);
+        /* blink when critically low (red, <=20%) */
+        asurada_batt_pulse_set(w->body, tb_connected && tb_level <= 20);
     }
 }
 
@@ -105,12 +108,9 @@ void zmk_widget_asurada_tb_battery_init(struct zmk_widget_asurada_tb_battery *w,
     lv_obj_set_style_pad_column(w->obj, 3, LV_PART_MAIN);
     lv_obj_clear_flag(w->obj, LV_OBJ_FLAG_SCROLLABLE);
 
-    /* trackball label (T) so the cell reads the same as the keyboard L/R cells */
-    lv_obj_t *lbl = lv_label_create(w->obj);
-    char letter[2] = { CONFIG_ASURADA_CONN_LABEL_2[0] ? CONFIG_ASURADA_CONN_LABEL_2[0] : 'T', '\0' };
-    lv_label_set_text(lbl, letter);
-    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(lbl, lv_color_hex(DISPLAY_COLOR_LAYER_TEXT), LV_PART_MAIN);
+    /* No "T" label: the trackball page is self-evidently the trackball, so the
+     * battery is shown as the icon alone (the keyboard page keeps L/R because it
+     * has two halves to tell apart). */
 
     /* battery body: bordered rounded rect (same dims as half_batteries) */
     lv_obj_t *body = lv_obj_create(w->obj);

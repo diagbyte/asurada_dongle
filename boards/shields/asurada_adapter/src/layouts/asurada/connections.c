@@ -9,6 +9,7 @@
 
 #include <fonts.h>
 #include "display_colors.h"
+#include "batt_pulse.h"
 
 /*
  * Connections page: a title plus one row per split peripheral (up to
@@ -97,6 +98,8 @@ static void update_row_display(uint8_t row) {
         }
         if (widget->body[row]) {
             lv_obj_set_style_border_color(widget->body[row], lv_color_hex(c), LV_PART_MAIN);
+            /* blink when critically low (red, <=20%) */
+            asurada_batt_pulse_set(widget->body[row], connected && level <= 20);
         }
     }
 }
